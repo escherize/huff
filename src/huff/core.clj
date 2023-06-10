@@ -4,36 +4,65 @@
    [clojure.walk :as walk]
    [malli.core :as m]))
 
-(def hiccup-schema
+(def ^:private hiccup-schema
   [:schema
    {:registry
-    {"primative" [:or :string number? :boolean :nil]
-     "hiccup"    [:orn
-                  [:fragment-node  [:catn
-                                    [:fragment-indicator [:= :<>]]
-                                    [:children           [:* [:schema [:ref "hiccup"]]]]]]
-                  ;;[:hiccup-coll [:sequential [:schema [:ref "hiccup"]]]]
-                  [:tag-node       [:catn
-                                    [:tag      simple-keyword?]
-                                    [:props    [:? [:map-of :keyword :any]]]
-                                    [:children [:* [:schema [:ref "hiccup"]]]]]]
-                  [:raw-node       [:catn
-                                    [:raw     [:= :hiccup/raw-html]]
-                                    [:content :string]]]
-                  [:component-node [:catn [:view-fxn [:function [:=>
-                                                                 [:cat :any]
-                                                                 [:schema [:ref "hiccup"]]]]]
-                                    [:children [:* :any]]]]
-                  [:primitive      [:ref "primative"]]]}}
+    {"hiccup" [:orn
+               [:fragment-node  [:catn
+                                 [:fragment-indicator [:= :<>]]
+                                 [:children           [:* [:schema [:ref "hiccup"]]]]]]
+               [:tag-node       [:catn
+                                 [:tag      simple-keyword?]
+                                 [:attrs    [:? [:map-of [:or :string :keyword :symbol] :any]]]
+                                 [:children [:* [:schema [:ref "hiccup"]]]]]]
+               ;; Always passed through untouched
+               [:raw-node       [:catn
+                                 [:raw     [:= :hiccup/raw-html]]
+                                 [:content :string]]]
+               [:component-node [:catn
+                                 [:view-fxn [:and
+                                             [:function [:=> [:cat :any]
+                                                         [:schema [:ref "hiccup"]]]]
+                                             [:not keyword?]
+                                             [:not vector?]]]
+                                 [:children [:* :any]]]]
+               [:primitive [:or :string number? :boolean :nil]]]}}
    "hiccup"])
 
+(let [validator (m/validator hiccup-schema)]
+  (defn valid? [h] (validator h)))
+
 (def ^:private parse (m/parser hiccup-schema))
+
+(defn stringify [text]
+  (case (pr-str (type text))
+    "nil" ""
+    "clojure.lang.Keyword" (if-let [ns (namespace text)]
+                           (str ns "/" (name text))
+                           (name text))
+    "clojure.lang.Ratio" (str (double text))
+    (str text)))
+
+(def ^:dynamic *escape?* true)
+
+(defn escape-html
+  "Change special characters into HTML character entities."
+  [text]
+  (let [s (stringify text)]
+    (if *escape?*
+      (-> s
+          (str/replace "&"  "&amp;")
+          (str/replace "<"  "&lt;")
+          (str/replace ">"  "&gt;")
+          (str/replace "\"" "&quot;")
+          (str/replace "'" "&#39;"))
+      s)))
 
 (defmulti ^:private emit
   #_(fn [& xs] (prn ["emit" xs]) (first xs))
   first)
 
-(defmethod emit :primitive [[_ x]] x)
+(defmethod emit :primitive [[_ x]] (escape-html x))
 
 (defn step
   "Used to extract :.class.names.and#ids from keywords."
@@ -76,40 +105,61 @@
 (defn emit-style [s]
   (str "style=\""
        (cond
-         (map? s) (str/join ";" (for [[k v] s] (str (name k) ": " v)))
-         (string? s) s)
+         (map? s) (str/join (for [[k v] (sort-by first s)] (str (stringify k) ":" (stringify v) ";")))
+         (string? s) s
+         :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
        "\""))
 
-(defn emit-props [p]
-  (let [outs (keep (fn [[k value]]
-                     (when (not-empty value)
-                       (cond
-                         (= :style k) (emit-style value)
-                         (string? value) (str (name k) "=\"" value "\"")
-                         (coll? value)  (str (name k) "=\"" (str/join " " value) "\""))))
-                   p)]
-    (str (when (seq outs) " ") (str/join " " outs))))
+(emit-attrs p)
 
-(defmethod emit :tag-node [[_ {:keys [tag props children] :as in}]]
+(defn emit-attrs [p]
+  (def p p)
+  (let [outs (keep (fn [[k value]]
+                     (when-not (or (contains? #{false ""} value) (nil? value)
+                                   (and (coll? value) (empty? value)))
+                       (cond
+                         (= :style k)
+                         (emit-style value)
+
+                         (coll? value)
+                         (str (name k) "=\""  (escape-html (str/join " " value)) "\"")
+
+                         :else
+                         (let [escaped (escape-html value)]
+                           (str (name k) "=\"" escaped "\"")))))
+                   p)]
+    (str (when (seq outs) " ")
+         (str/join " " (sort outs)))))
+
+;; lifted from hiccup.compiler
+(def ^{:doc "A list of elements that must be rendered without a closing tag."
+       :private true}
+  void-tags
+  #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
+  "link" "meta" "param" "source" "track" "wbr"})
+
+(defmethod emit :tag-node [[_ {:keys [tag attrs children]}]]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
-        props (-> props
+        attrs (-> attrs
                   (update :id #(or % tag-id))
                   (update :class #(cond
                                     (string? %) (concat [%] tag-classes)
                                     (coll? %) (concat % tag-classes)
-                                    (nil? %) tag-classes)))]
-    (str "<" (name tag) (emit-props props) ">"
-         (str/join (map emit children))
-         (str "</" (name tag) ">"))))
+                                    (nil? %) tag-classes)))
+        tag-name (name tag)]
+    (if (contains? void-tags tag-name)
+      (str "<" tag-name (emit-attrs attrs) " />")
+      (str "<" tag-name (emit-attrs attrs) ">"
+           (str/join (map emit children))
+           (str "</" tag-name ">")))))
 
-(defmethod emit :raw-node [[_ {:keys [content]}]]
-  content)
+(defmethod emit :raw-node [[_ {:keys [content]}]] content)
 
 (defmethod emit :fragment-node [[_ {:keys [children]}]]
-  (str/join "" (mapv #(emit %) children)))
+  (str/join (mapv #(emit %) children)))
 
 (defmethod emit :hiccup-coll [[_ {:keys [children]}]]
-  (str/join "" (mapv emit children)))
+  (str/join (mapv emit children)))
 
 (defn- list->fragment [x]
   (walk/postwalk
@@ -118,10 +168,16 @@
         (#{clojure.lang.PersistentList clojure.lang.LazySeq} (type x)) (into [:<>])))
     x))
 
-(defn html [h] (-> h list->fragment parse emit))
+(def explainer (m/explainer hiccup-schema))
+
+(defn html [h]
+  (let [parsed (-> h list->fragment parse)]
+    (if (= parsed :malli.core/invalid)
+      (let [{:keys [value]} (explainer h)]
+        (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
+      (emit parsed))))
 
 (defmethod emit :component-node [[_ {:keys [view-fxn children]}]]
   (html (apply view-fxn children)))
 
-(defn page [h] (html [:<> [:hiccup/raw-html "<!doctype html>"]
-                      h]))
+(defn page [h] (html [:<> [:hiccup/raw-html "<!doctype html>"] h]))
