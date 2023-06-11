@@ -64,7 +64,6 @@
 (deftest escape-test
   (is (= "<div>&quot;</div>" (h/html [:div "\""]))))
 
-
 (deftest unescape-test
   (is (= "<div>\"</div>" (binding [h/*escape?* false]
                            (h/html [:div "\""])))))

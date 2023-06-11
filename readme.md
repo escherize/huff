@@ -2,16 +2,15 @@
 
 ## Rationale
 
-There's already [hiccup](https://github.com/weavejester/hiccup) and [lambdaisland/hiccup](https://github.com/lambdaisland/hiccup).
+## Benefits
 
-|   | huff          | hiccup | hiccup2 | lambdaisland/hiccup |
-| - | ------------- | ------ | ---- | ---- |
-| Runnable in babashka | ✅ | ✅ |❌ |✅ |
-| Auto-escape strings | ✅ | sorta | ✅ |
-| Fragments `([:<> ...])` | ✅ | ❌ | ✅ |❌ |
-| Components `([my-fn ...])` | ✅ | ❌ | ✅ | ❌ |
-| Style maps `([:div {:style {:color "blue"}}])` | ✅ | ✅ | ✅ |✅ | 
-| Insert pre-rendered HTML with `[::hiccup/unsafe-html "your html"]` | ✅ | ❌ | ✅ |❌ | 
-| Can export sgml and xml | ❌ | ✅ | ✅ | ? |
-
-I wanted to start writing more html from babashka, so here is [huff](https://github.com/escherize/huff).
+- parse tags in any order
+- reagent-like conveniences
+  - fragmnts
+  - components
+  - style maps
+  - :hiccup/raw-html tag to bypass compilation
+  - included function to check for valid hiccup
+- run on babashka
+- auto-encode html (security pit of success)
+  - can be deactivated

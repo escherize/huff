@@ -32,7 +32,9 @@
 (let [validator (m/validator hiccup-schema)]
   (defn valid? [h] (validator h)))
 
-(def ^:private parse (m/parser hiccup-schema))
+(def explainer (m/explainer hiccup-schema))
+
+(def ^:private parser (m/parser hiccup-schema))
 
 (defn stringify [text]
   (case (pr-str (type text))
@@ -58,9 +60,7 @@
           (str/replace "'" "&#39;"))
       s)))
 
-(defmulti ^:private emit
-  #_(fn [& xs] (prn ["emit" xs]) (first xs))
-  first)
+(defmulti ^:private emit first)
 
 (defmethod emit :primitive [[_ x]] (escape-html x))
 
@@ -110,10 +110,7 @@
          :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
        "\""))
 
-(emit-attrs p)
-
 (defn emit-attrs [p]
-  (def p p)
   (let [outs (keep (fn [[k value]]
                      (when-not (or (contains? #{false ""} value) (nil? value)
                                    (and (coll? value) (empty? value)))
@@ -158,9 +155,6 @@
 (defmethod emit :fragment-node [[_ {:keys [children]}]]
   (str/join (mapv #(emit %) children)))
 
-(defmethod emit :hiccup-coll [[_ {:keys [children]}]]
-  (str/join (mapv emit children)))
-
 (defn- list->fragment [x]
   (walk/postwalk
     (fn [x]
@@ -168,16 +162,16 @@
         (#{clojure.lang.PersistentList clojure.lang.LazySeq} (type x)) (into [:<>])))
     x))
 
-(def explainer (m/explainer hiccup-schema))
-
-(defn html [h]
-  (let [parsed (-> h list->fragment parse)]
-    (if (= parsed :malli.core/invalid)
-      (let [{:keys [value]} (explainer h)]
-        (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
-      (emit parsed))))
+(declare html)
 
 (defmethod emit :component-node [[_ {:keys [view-fxn children]}]]
   (html (apply view-fxn children)))
 
 (defn page [h] (html [:<> [:hiccup/raw-html "<!doctype html>"] h]))
+
+(defn html [h]
+  (let [parsed (-> h list->fragment parser)]
+    (if (= parsed :malli.core/invalid)
+      (let [{:keys [value]} (explainer h)]
+        (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
+      (emit parsed))))
