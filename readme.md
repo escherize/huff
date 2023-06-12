@@ -15,4 +15,6 @@
     - e.g. `:background-color` -> `backgroundColor`
 - runs on babashka
 - html-encoded by default
-
+- tested agianst slightly modified hiccup 2 tests
+  - some philosophical differences
+    - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
