@@ -1,30 +1,40 @@
 ;; annotated clone of hiccup2.test
 (ns huff.hiccup2-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest are is testing]]
             [huff.core :as h]
             ;;[hiccup2.core :refer :all]
             ;;[hiccup.util :as util]
             ))
 
+(deftest kw-tag-parsing
+  (are [x y] (= (h/tag->tag+id+classes x) y)
+    :div       ["div" nil []]
+    :div.a     ["div" nil ["a"]]
+    :div.a#d   ["div" "d" ["a"]]
+    :div#d.a   ["div" "d" ["a"]]
+    :div.a.b   ["div" nil ["a" "b"]]
+    :div#d.a.b ["div" "d" ["a" "b"]]
+    :div.a#d.b ["div" "d" ["a" "b"]]
+    :div.a.b#d ["div" "d" ["a" "b"]]
+    :div#d.b.a ["div" "d" ["b" "a"]]
+    :div.b#d.a ["div" "d" ["b" "a"]]
+    :div.a.a#d ["div" "d" ["a" "a"]]))
+
+(deftest kw-tag-validity
+  (is (= "can't have 2 #'s in a tag."
+         (try (h/tag->tag+id+classes :div#id1#id2)
+              (catch Exception e (ex-message e))))))
+
 (deftest tag-names
   (testing "basic tags"
-    ;; in huff tags are keywords only.
-    (is (= "<div></div>" (h/html [:div])))
-
-    ;; hiccup:
-    ;; (is (= (str (h/html ["div"])) "<div></div>"))
-    ;; (is (= (str (h/html ['div])) "<div></div>"))
-    )
+    (is (= "<div></div>" (h/html [:div]))))
   (testing "tag syntax sugar"
     (is (= "<div id=\"foo\"></div>" (h/html [:div#foo])))
     (is (= "<div class=\"foo\"></div>" (h/html [:div.foo])))
     (is (= "<div class=\"foo\">barbaz</div>" (h/html [:div.foo (str "bar" "baz")])))
     (is (= "<div class=\"a b\"></div>" (h/html [:div.a.b])))
     (is (= "<div class=\"a b c\"></div>" (h/html [:div.a.b.c])))
-    (is (= "<div class=\"bar baz\" id=\"foo\"></div>" (h/html [:div#foo.bar.baz])
-           ;; in hiccup the id is printed last:
-           ;;"<div class=\"bar baz\" id=\"foo\"></div>"
-           ))))
+    (is (= "<div class=\"bar baz\" id=\"foo\"></div>" (h/html [:div#foo.bar.baz])))))
 
 (deftest tag-contents
   (testing "empty tags"
@@ -52,12 +62,19 @@
   (testing "seqs are expanded"
     (is (= (h/html [:body (list "foo" "bar")]) "<body>foobar</body>"))
     (is (= (h/html (list [:p "a"] [:p "b"])) "<p>a</p><p>b</p>")))
-  ;; in hiccup, keywords are turned into strings". not in huff.
-  ;; (testing "keywords are turned into strings"
-  ;;   (is (= (h/html [:div :foo]) "<div>foo</div>")))
+
+  (testing "keywords are not turned into strings"
+    ;; in hiccup, keywords are turned into strings". not in huff.
+    (is (false? (h/valid? [:div :foo]))))
   (testing "vecs don't expand - error if vec doesn't have tag name"
     (is (false? (h/valid? [:div :foo])))
-    (is (false? (h/valid? [[:p "a"] [:p "b"]]))))
+    (is (false? (h/valid? [[:p "a"] [:p "b"]])))
+    (is (= "<p>a</p><p>b</p>"
+           ;; lists of hiccup are the same as fragments.
+           (h/html (list [:p "a"] [:p "b"]))))
+    (is (= "<p>a</p><p>b</p>"
+           ;; lists of hiccup are the same as fragments.
+           (h/html [:<> [:p "a"] [:p "b"]]))))
   (testing "tags can contain tags"
     (is (= (h/html [:div [:p]]) "<div><p></p></div>"))
     (is (= (h/html [:div [:b]]) "<div><b></b></div>"))
@@ -138,46 +155,47 @@
 
 (deftest render-modes
   (testing "closed tag"
-    ;;(is (= (h/html [:p] [:br]) "<p></p><br />"))
-    (is (= (h/html [:<> [:p] [:br]]) "<p></p><br />"))
-    ;; no rener modes in huff, it is for outputting xhtml.
-    ;; (is (= (h/html {:mode :xhtml} [:p] [:br]) "<p></p><br />"))
-    )
+    (is (= "<p></p><br />" (h/html (list [:p] [:br]))))
+    (is (= "<p></p><br />" (h/html [:<> [:p] [:br]]))))
   (testing "laziness and binding scope"
-    (is (= (h/html [:html [:link] (list [:link])])
-           "<html><link /><link /></html>")))
+    (is (= "<html><link /><link /></html>" (h/html [:html [:link] (list [:link])]))))
   (testing "function binding scope"
     (let [f #(vector :p "<>" [:br])]
-      (is (= (h/html [f]) "<p>&lt;&gt;<br /></p>"))
-      (is (= (h/html (f)) "<p>&lt;&gt;<br /></p>")))))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html [f])))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html (f))))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html '([f])))))))
 
 (deftest auto-escaping
   (testing "literals"
-    (is (= (h/html "<>") "&lt;&gt;"))
+    (is (= "&lt;&gt;"
+           (h/html "<>")))
     ;; invalid in huff
     (is (false? (h/valid? :<>)))
-    (is (= (h/html ^String (str "<>")) "&lt;&gt;"))
+    (is (= "&lt;&gt;"
+           (h/html ^String (str "<>"))))
     (is (false? (h/valid? {"<a>" "<b>"})))
     (is (false? (h/valid? #{"<>"})))
-    (is (= (h/html 1) "1"))
-    (is (= (h/html ^Number (+ 1 1)) "2")))
+    (is (= "1"
+           (h/html 1)))
+    (is (= "2"
+           (h/html ^Number (+ 1 1)))))
   (testing "non-literals"
     (is (= (h/html (list [:p "<foo>"] [:p "<bar>"]))
            "<p>&lt;foo&gt;</p><p>&lt;bar&gt;</p>"))
     (is (= (h/html ((constantly "<foo>"))) "&lt;foo&gt;"))
     (is (= (let [x "<foo>"] (h/html x)) "&lt;foo&gt;")))
   (testing "elements"
-    (is (= (h/html [:p "<>"]) "<p>&lt;&gt;</p>"))
-    (is (= (h/html [:p {:class "<\">"}])
-           "<p class=\"&lt;&quot;&gt;\"></p>"))
-    (is (= (h/html [:p {:class ["<\">"]}])
-           "<p class=\"&lt;&quot;&gt;\"></p>"))
-    (is (= (h/html [:ul [:li "<foo>"]])
-           "<ul><li>&lt;foo&gt;</li></ul>")))
+    (is (= "<p>&lt;&gt;</p>" (h/html [:p "<>"])))
+    (is (= "<p class=\"&lt;&quot;&gt;\"></p>"
+           (h/html [:p {:class "<\">"}])))
+    (is (= "<p class=\"&lt;&quot;&gt;\"></p>"
+           (h/html [:p {:class ["<\">"]}])))
+    (is (= "<ul><li>&lt;foo&gt;</li></ul>"
+           (h/html [:ul [:li "<foo>"]]))))
   (testing "raw strings"
-    (is (= (h/html [:hiccup/raw-html "<foo>"]) "<foo>"))
-    (is (= (h/html [:p [:hiccup/raw-html "<foo>"]]) "<p><foo></p>"))
-    (is (= (h/html [:ul [:li "<>"]]) "<ul><li>&lt;&gt;</li></ul>"))))
+    (is (= "<foo>" (h/html [:hiccup/raw-html "<foo>"])))
+    (is (= "<p><foo></p>" (h/html [:p [:hiccup/raw-html "<foo>"]])))
+    (is (= "<ul><li>&lt;&gt;</li></ul>" (h/html [:ul [:li "<>"]])))))
 
 ;; in huff do not call the compiler multiple times on the same value,
 ;; instead use the `:hiccup/raw-html` tag

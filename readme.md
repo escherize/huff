@@ -2,15 +2,17 @@
 
 ## Rationale
 
-## Benefits
+## Features
 
 - parse tags in any order
 - reagent-like conveniences
-  - fragmnts
-  - components
   - style maps
-  - :hiccup/raw-html tag to bypass compilation
+  - fragments to return multiple cibling forms
+  - call functions like components
+   - :hiccup/raw-html tag to bypass compilation
   - included function to check for valid hiccup
-- run on babashka
-- auto-encode html (security pit of success)
-  - can be deactivated
+  - attribute names mapped to idiomatic html:
+    - e.g. `:background-color` -> `backgroundColor`
+- runs on babashka
+- html-encoded by default
+

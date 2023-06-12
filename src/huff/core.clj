@@ -110,6 +110,9 @@
          :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
        "\""))
 
+(defn- emit-attr-value [k]
+  (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
+
 (defn emit-attrs [p]
   (let [outs (keep (fn [[k value]]
                      (when-not (or (contains? #{false ""} value) (nil? value)
@@ -119,11 +122,11 @@
                          (emit-style value)
 
                          (coll? value)
-                         (str (name k) "=\""  (escape-html (str/join " " value)) "\"")
+                         (str (emit-attr-value k) "=\""  (escape-html (str/join " " value)) "\"")
 
                          :else
                          (let [escaped (escape-html value)]
-                           (str (name k) "=\"" escaped "\"")))))
+                           (str (emit-attr-value k) "=\"" escaped "\"")))))
                    p)]
     (str (when (seq outs) " ")
          (str/join " " (sort outs)))))
