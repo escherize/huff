@@ -100,17 +100,17 @@
       (step \.) ;; move "seen " into the right place
       (map [:tag :id :class])))
 
+(defn- emit-attr-value [k]
+  (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
+
 (defn emit-style [s]
   ["style=\""
    (cond
      (map? s) (for [[k v] (sort-by first s)]
-                [(stringify k) ":" (stringify v) ";"])
+                [(emit-attr-value k) ":" (stringify v) ";"])
      (string? s) s
      :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
    "\""])
-
-(defn- emit-attr-value [k]
-  (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
 
 (defn emit-attrs [p]
   (let [outs (keep (fn [[k value]]

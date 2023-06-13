@@ -73,7 +73,11 @@
   (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>&#39;</div>"
          (h/html [:<>[:div "&"] [:div "<"] [:div ">"] [:div "\""] [:div "\\"]]))))
 
-
 (deftest unescape-test
   (is (= "<div>\"</div>"
          (binding [h/*escape?* false] (h/html [:div "\""])))))
+
+
+(deftest style-attr-args-test
+  (is (= "<div style=\"backgroundColor:red;\"></div>"
+         (h/html [:div {:style {:background-color "red"}}]))))

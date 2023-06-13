@@ -6,6 +6,14 @@ Hiccup in pure Clojure
 
 `io.github.escherize/huff {:git/tag "0.0.2" :git/sha "d717f51"}`
 
+```clojure
+
+(require '[huff.core :as h])
+
+(h/html [:div.hello#world "!"])
+;; => "<div class=\"hello\" id=\"world\">!</div>"
+```
+
 ## Rationale
 
 I wanted a juicy way to write html in babashka.
@@ -30,7 +38,7 @@ I wanted a juicy way to write html in babashka.
 - Tested agianst slightly modified hiccup 2 tests
   - some philosophical differences
     - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
-- Performance is Great!
+- Performance is Good!
   - ~1.1x faster than hiccup2/hiccup
 
 ## Prior Art
