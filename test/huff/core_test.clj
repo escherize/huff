@@ -54,16 +54,26 @@
   (is (= "<div style=\"border: 1px solid red\">x</div>"
         (h/html [:div {:style "border: 1px solid red"} "x"]))))
 
+(defn as-string [iolist]
+  (str/join (flatten iolist)))
+
 (deftest attr-emission-test
-  (is (= " class=\"x y\" id=\"x\"" (#'h/emit-attrs {:id "x" :class ["x" "y"]})))
-  (is (= (#'h/emit-attrs {:id "x" :class []}) " id=\"x\"")))
+  (is (= " class=\"x y\" id=\"x\"" (as-string (#'h/emit-attrs {:id "x" :class ["x" "y"]}))))
+  (is (= " id=\"x\"" (as-string (#'h/emit-attrs {:id "x" :class []})))))
 
 (deftest page-test
   (is (= (h/page [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
 
 (deftest escape-test
-  (is (= "<div>&quot;</div>" (h/html [:div "\""]))))
+  (is (= "<div>&amp;</div>"  (h/html [:div "&"])))
+  (is (= "<div>&lt;</div>"   (h/html [:div "<"])))
+  (is (= "<div>&gt;</div>"   (h/html [:div ">"])))
+  (is (= "<div>&quot;</div>" (h/html [:div "\""])))
+  (is (= "<div>&#39;</div>"  (h/html [:div "\\"])))
+  (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>&#39;</div>"
+         (h/html [:<>[:div "&"] [:div "<"] [:div ">"] [:div "\""] [:div "\\"]]))))
+
 
 (deftest unescape-test
-  (is (= "<div>\"</div>" (binding [h/*escape?* false]
-                           (h/html [:div "\""])))))
+  (is (= "<div>\"</div>"
+         (binding [h/*escape?* false] (h/html [:div "\""])))))

@@ -52,11 +52,11 @@
 (def ^:dynamic *escape?* true)
 
 (def char->replacement
-  {\&  "&amp;"
-   \<  "&lt;"
-   \>  "&gt;"
-   \\ "&quot;"
-   \" "&#39;"})
+  {\& "&amp;"
+   \< "&lt;"
+   \> "&gt;"
+   \" "&quot;"
+   \\ "&#39;"})
 
 (defn escape-html
   "Change special characters into HTML character entities."
@@ -86,19 +86,19 @@
     :id (cond (= char \#) (throw (ex-info "can't have 2 #'s in a tag." {:acc acc}))
               (= char \.) (assoc acc :id (str/join seen) :seen [] :mode :class) :else (update acc :seen conj char))
     :class (cond (= char \#) (-> acc
-                                 (update :classes conj (str/join seen))
+                                 (update :class conj (str/join seen))
                                  (assoc :seen [] :mode :id))
                  (= char \.) (-> acc
-                                 (update :classes conj (str/join seen))
+                                 (update :class conj (str/join seen))
                                  (assoc :seen [] :mode :class))
                  :else (update acc :seen conj char))))
 
 (defn tag->tag+id+classes [tag]
   (-> (reduce step
-              {:mode :tag :classes [] :seen [] :id nil}
+              {:mode :tag :class [] :seen [] :id nil}
               (name tag))
       (step \.) ;; move "seen " into the right place
-      (map [:tag :id :classes])))
+      (map [:tag :id :class])))
 
 (defn emit-style [s]
   ["style=\""
@@ -142,9 +142,9 @@
         tag-name (name tag)]
     (if (contains? void-tags tag-name)
       (list "<" tag-name (when (or tag-id (not-empty tag-classes))
-                           (emit-attrs {:id tag-id :classes tag-classes})) " />")
+                           (emit-attrs {:id tag-id :class tag-classes})) " />")
       (list "<" tag-name (when (or tag-id (not-empty tag-classes))
-                           (emit-attrs {:id tag-id :classes tag-classes})) ">"
+                           (emit-attrs {:id tag-id :class tag-classes})) ">"
             (map emit children)
             (list "</" tag-name ">")))))
 
@@ -188,6 +188,7 @@
     (string? iolist) (.append ^StringBuilder sb ^String iolist)
     (coll? iolist) (re-string sb iolist)
     (nil? iolist) sb
+    (char? iolist) (.append ^StringBuilder sb ^Character iolist)
     :else (throw (ex-info "weird" {:h iolist}))))
 
 (defn re-string

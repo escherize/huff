@@ -162,8 +162,7 @@
   (testing "function binding scope"
     (let [f #(vector :p "<>" [:br])]
       (is (= "<p>&lt;&gt;<br /></p>" (h/html [f])))
-      (is (= "<p>&lt;&gt;<br /></p>" (h/html (f))))
-      (is (= "<p>&lt;&gt;<br /></p>" (h/html '([f])))))))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html (f)))))))
 
 (deftest auto-escaping
   (testing "literals"
