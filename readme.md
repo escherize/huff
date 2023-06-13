@@ -1,5 +1,11 @@
 # huff
 
+Hiccup in pure Clojure
+
+## Usage
+
+`io.github.escherize/huff {:git/tag "0.0.1" :git/sha "7da474f"}`
+
 ## Rationale
 
 I wanted a juicy way to write html in babashka.
