@@ -10,8 +10,8 @@ Hiccup in pure Clojure
 
 I wanted a juicy way to write html in babashka.
 
-- lambdaisland/hiccup is juicy, but doesn't run on babashka
-- hiccup is not that juicy, but runs on babashka.
+- [lambdaisland/hiccup](https://github.com/lambdaisland/hiccup) is juicy, but relies on some java lib that doesn't run on babashka.
+- hiccup has less features, but does run on babashka.
 
 ## Features
 
