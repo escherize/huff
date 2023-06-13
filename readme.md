@@ -25,7 +25,7 @@ I wanted a juicy way to write html in babashka.
 
 - Reagent-like conveniences
   - style maps
-  - fragments to return multiple cibling forms
+  - fragments to return multiple sibling forms
   - call **functions** like **components**
    - `:hiccup/raw-html` tag to bypass compilation
   - included function to check for valid hiccup

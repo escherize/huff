@@ -77,7 +77,6 @@
   (is (= "<div>\"</div>"
          (binding [h/*escape?* false] (h/html [:div "\""])))))
 
-
 (deftest style-attr-args-test
   (is (= "<div style=\"backgroundColor:red;\"></div>"
          (h/html [:div {:style {:background-color "red"}}]))))
