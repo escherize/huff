@@ -34,7 +34,7 @@
     (is (= "<div class=\"foo\">barbaz</div>" (h/html [:div.foo (str "bar" "baz")])))
     (is (= "<div class=\"a b\"></div>" (h/html [:div.a.b])))
     (is (= "<div class=\"a b c\"></div>" (h/html [:div.a.b.c])))
-    (is (= "<div class=\"bar baz\" id=\"foo\"></div>" (h/html [:div#foo.bar.baz])))))
+    (is (= "<div id=\"foo\" class=\"bar baz\"></div>" (h/html [:div#foo.bar.baz])))))
 
 (deftest tag-contents
   (testing "empty tags"
@@ -94,7 +94,7 @@
   (testing "attribute values are escaped"
     (is (= "<div id=\"&quot;\"></div>" (h/html [:div {:id "\""}]))))
   (testing "boolean attributes"
-    (is (= "<input checked=\"true\" type=\"checkbox\" />"
+    (is (= "<input type=\"checkbox\" checked=\"true\" />"
            (h/html [:input {:type "checkbox" :checked true}])))
     (is (= "<input type=\"checkbox\" />"
            (h/html [:input {:type "checkbox" :checked false}]))))
@@ -118,7 +118,7 @@
     (is (= (h/html [:div.foo {:class ["bar"]} "baz"])
            "<div class=\"bar foo\">baz</div>"))
     (is (= (h/html [:div#bar.foo {:id "baq"} "baz"])
-           "<div class=\"foo\" id=\"baq\">baz</div>"))))
+           "<div id=\"baq\" class=\"foo\">baz</div>"))))
 
 (deftest compiled-tags
   (testing "tag content can be vars"

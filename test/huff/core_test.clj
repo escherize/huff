@@ -18,8 +18,8 @@
   (is (= (h/html [:div {:style {:color "red" :background "black"}} "x" [:div {:style {:padding "10px"}} "z"] "y"])
          "<div style=\"background:black;color:red;\">x<div style=\"padding:10px;\">z</div>y</div>"))
 
-  (is (= (h/html [:div.class#id])
-         "<div class=\"class\" id=\"id\"></div>"))
+  (is (= "<div id=\"id\" class=\"class\"></div>"
+         (h/html [:div.class#id])))
 
   (is (true?
        (= (h/html [:div [:<> [:<> [:<> "x"]]]])
@@ -54,12 +54,16 @@
   (is (= "<div style=\"border: 1px solid red\">x</div>"
         (h/html [:div {:style "border: 1px solid red"} "x"]))))
 
-(defn as-string [iolist]
-  (str/join (flatten iolist)))
+(defn as-string [f]
+  (let [sb (StringBuilder.)]
+    (f sb)
+    (str sb)))
 
 (deftest attr-emission-test
-  (is (= " class=\"x y\" id=\"x\"" (as-string (#'h/emit-attrs {:id "x" :class ["x" "y"]}))))
-  (is (= " id=\"x\"" (as-string (#'h/emit-attrs {:id "x" :class []})))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]}))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"}))))
+  (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []}))))
+  )
 
 (deftest page-test
   (is (= (h/page [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))

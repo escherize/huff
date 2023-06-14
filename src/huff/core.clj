@@ -4,7 +4,7 @@
    [clojure.walk :as walk]
    [malli.core :as m]))
 
-;; (set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 
 (def ^:private hiccup-schema
   [:schema
@@ -32,7 +32,7 @@
                                              [:not keyword?]
                                              [:not vector?]]]
                                  [:children [:* :any]]]]
-               [:primitive [:or :string number? :boolean :nil]]]}}
+               [:primative [:or :string number? :boolean :nil]]]}}
    "hiccup"])
 
 (let [validator (m/validator hiccup-schema)]
@@ -62,22 +62,24 @@
 (defn escape-html
   "Change special characters into HTML character entities."
   [text]
-  (if-not (and *escape?* (some char->replacement text))
-    text
-    (let [s (into [] (stringify text))
-          sb (StringBuilder.)]
-      (if *escape?*
-        (do
-          (doseq [c s] (.append ^StringBuilder sb
-                                (if-let [replacement (char->replacement c)]
-                                  replacement
-                                  c)))
-          (str sb))
-        s))))
+  (let [text-str (stringify text)]
+    (if-not (and *escape?* (some char->replacement text-str))
+      text-str
+      (let [s (into [] (stringify text))
+            sb (StringBuilder.)]
+        (if *escape?*
+          (do
+            (doseq [c s] (.append ^StringBuilder sb
+                                  (if-let [replacement (char->replacement c)]
+                                    replacement
+                                    c)))
+            (str sb))
+          s)))))
 
-(defmulti ^:private emit first)
+(defmulti ^:private emit (fn [_sb form] (first form)))
 
-(defmethod emit :primitive [[_ x]] (escape-html x))
+(defmethod emit :primative [sb [_ x]]
+  (.append ^StringBuilder sb ^String (escape-html x)))
 
 (defn step
   "Used to extract :.class.names.and#ids from keywords."
@@ -106,32 +108,41 @@
 (defn- emit-attr-value [k]
   (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
 
-(defn emit-style [s]
-  ["style=\""
-   (cond
-     (map? s) (for [[k v] (sort-by first s)]
-                [(emit-attr-value k) ":" (stringify v) ";"])
-     (string? s) s
-     :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
-   "\""])
+(defn emit-style [sb s]
+  (.append ^StringBuilder sb "style=\"")
+  (cond
+    (map? s) (doseq [[k v] (sort-by first s)]
+               [(.append ^StringBuilder sb (emit-attr-value k))
+                (.append ^StringBuilder sb ":")
+                (.append ^StringBuilder sb (stringify v))
+                (.append ^StringBuilder sb ";")])
+    (string? s) (.append ^StringBuilder sb s)
+    :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
+  (.append ^StringBuilder sb "\""))
 
-(defn emit-attrs [p]
-  (let [outs (keep (fn [[k value]]
-                     (when-not (or (contains? #{false ""} value) (nil? value)
-                                   (and (coll? value) (empty? value)))
-                       (cond
-                         (= :style k)
-                         (emit-style value)
+(defn emit-attrs [sb attrs]
+  (doseq [[k value] attrs]
+    (when-not (or (contains? #{false ""} value)
+                  (nil? value)
+                  (and (coll? value) (empty? value)))
+      (.append ^StringBuilder sb " ")
+      (cond
+        (= :style k)
+        (emit-style sb value)
 
-                         (coll? value)
-                         [(emit-attr-value k) "=\""  (escape-html (str/join " " value)) "\""]
+        (coll? value)
+        (do (.append ^StringBuilder sb (emit-attr-value k))
+            (.append ^StringBuilder sb "=\"")
+            (doseq [x (interpose " " value)]
+              (.append ^StringBuilder sb (escape-html x)))
+            (.append ^StringBuilder sb "\""))
 
-                         :else
-                         (let [escaped (escape-html value)]
-                           [(emit-attr-value k) "=\"" escaped "\""]))))
-                   p)]
-    [(when (seq outs) " ")
-     (interpose " " (sort outs))]))
+        :else
+        (let [escaped (escape-html value)]
+          (.append ^StringBuilder sb (emit-attr-value k))
+          (.append ^StringBuilder sb "=\"")
+          (.append ^StringBuilder sb escaped)
+          (.append ^StringBuilder sb "\""))))))
 
 ;; lifted from hiccup.compiler
 (def ^{:doc "A list of elements that must be rendered without a closing tag."
@@ -140,18 +151,25 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [[_ {:keys [tag children]}]]
+(defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}]]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
         tag-name (name tag)]
-    (if (contains? void-tags tag-name)
-      (list "<" tag-name (when (or tag-id (not-empty tag-classes))
-                           (emit-attrs {:id tag-id :class tag-classes})) " />")
-      (list "<" tag-name (when (or tag-id (not-empty tag-classes))
-                           (emit-attrs {:id tag-id :class tag-classes})) ">"
-            (map emit children)
-            (list "</" tag-name ">")))))
+    (.append ^StringBuilder sb "<")
+    (.append ^StringBuilder sb ^String tag-name)
+    (when (or tag-id (not-empty tag-classes))
+      (emit-attrs sb {:id tag-id :class tag-classes}))
 
-(defmethod emit :tag-node [[_ {:keys [tag attrs children]}]]
+    (if (contains? void-tags tag-name)
+      (.append ^StringBuilder sb " />")
+      (do
+        (.append ^StringBuilder sb ">")
+        (doseq [c children]
+          (emit sb c))
+        (.append ^StringBuilder sb "</")
+        (.append ^StringBuilder sb tag-name)
+        (.append ^StringBuilder sb ">")))))
+
+(defmethod emit :tag-node [sb [_ {:keys [tag attrs children]}]]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
         attrs (-> attrs
                   (update :id #(or % tag-id))
@@ -160,44 +178,38 @@
                                     (coll? %) (concat % tag-classes)
                                     (nil? %) tag-classes)))
         tag-name (name tag)]
+    (.append ^StringBuilder sb "<")
+    (.append ^StringBuilder sb ^String tag-name)
+    (emit-attrs sb attrs)
     (if (contains? void-tags tag-name)
-      (list "<" tag-name (emit-attrs attrs) " />")
-      (list "<" tag-name (emit-attrs attrs) ">"
-            (map emit children)
-            (list "</" tag-name ">")))))
+      (.append ^StringBuilder sb " />")
+      (do (.append ^StringBuilder sb ">")
+          (doseq [c children] (emit sb c))
+          (.append ^StringBuilder sb "</")
+          (.append ^StringBuilder sb ^String tag-name)
+          (.append ^StringBuilder sb ">")))))
 
-(defmethod emit :raw-node [[_ {:keys [content]}]] content)
+(defmethod emit :raw-node [sb [_ {:keys [content]}]]
+  (.append ^StringBuilder sb content))
 
-(defmethod emit :fragment-node [[_ {:keys [children]}]]
-  (map emit children))
+(defmethod emit :fragment-node [sb [_ {:keys [children]}]]
+  (doseq [c children]
+    (emit ^StringBuilder sb c)))
 
-(defmethod emit :siblings-node [[_ {:keys [children]}]]
-  (map emit children))
+(defmethod emit :siblings-node [sb [_ {:keys [children]}]]
+  (doseq [c children]
+    (emit ^StringBuilder sb c)))
 
-(declare html)
-
-(defmethod emit :component-node [[_ {:keys [view-fxn children]}]]
-  (emit (parser (apply view-fxn children))))
-
-(defn re-string
-  ([iolist] (let [sb (StringBuilder. (* 10 (count iolist)))]
-         (str (re-string sb iolist))))
-  ([sb h]
-   (reduce
-     (fn [sb iolist]
-       (cond
-         (string? iolist) (.append ^StringBuilder sb ^String iolist)
-         (coll? iolist) (re-string sb iolist)
-         (nil? iolist) sb
-         (char? iolist) (.append ^StringBuilder sb ^Character iolist)
-         :else (throw (ex-info "weird" {:h iolist}))))
-     sb h)))
+(defmethod emit :component-node [sb [_ {:keys [view-fxn children]}]]
+  (emit sb (parser (apply view-fxn children))))
 
 (defn html [h]
   (let [parsed (parser h)]
     (if (= parsed :malli.core/invalid)
       (let [{:keys [value]} (explainer h)]
         (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
-      (re-string (emit parsed)))))
+      (let [sb (StringBuilder.)]
+        (emit sb parsed)
+        (str sb)))))
 
 (defn page [h] (html [:<> [:hiccup/raw-html "<!doctype html>"] h]))
