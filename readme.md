@@ -12,11 +12,6 @@ Hiccup in pure Clojure
 (h/html [:div.hello#world "!"])
 ;; => "<div class=\"hello\" id=\"world\">!</div>"
 
-(defn str-info [s]
-  [:div
-   [:span (apply str (reverse s))]
-   [:pre "Length: " (count s)]])
-
 (h/html [:<> [:div "d"] [:span "s"]])
 ;; => "<div>d</div><span>s</span>"
 
@@ -27,8 +22,13 @@ Hiccup in pure Clojure
 (h/html [:hiccup/raw-html "<div>raw</div>"])
 ;; => "<div>raw</div>"
 
+(defn str-info [s]
+  [:div.info
+   [:span (apply str (reverse s))]
+   [:pre.len "Length: " (count s)]])
+
 (h/html [str-info "hello"])
-;; => "<div><span>olleh</span><pre>Length: 5</pre></div>"
+;; => "<div class=\"info\"><span>olleh</span><pre class=\"len\">Length: 5</pre></div>"
 ```
 
 ## Rationale
