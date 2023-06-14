@@ -177,8 +177,6 @@
 (defmethod emit :component-node [[_ {:keys [view-fxn children]}]]
   (emit (parser (apply view-fxn children))))
 
-(declare re-string)
-
 (defn re-string
   ([iolist] (let [sb (StringBuilder. (* 10 (count iolist)))]
          (str (re-string sb iolist))))
