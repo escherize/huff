@@ -62,16 +62,18 @@
 (defn escape-html
   "Change special characters into HTML character entities."
   [text]
-  (let [s (into [] (stringify text))
-        sb (StringBuilder.)]
-    (if *escape?*
-      (do
-        (doseq [c s] (.append ^StringBuilder sb
-                              (if-let [replacement (char->replacement c)]
-                                replacement
-                                c)))
-        (str sb))
-      s)))
+  (if-not (and *escape?* (some char->replacement text))
+    text
+    (let [s (into [] (stringify text))
+          sb (StringBuilder.)]
+      (if *escape?*
+        (do
+          (doseq [c s] (.append ^StringBuilder sb
+                                (if-let [replacement (char->replacement c)]
+                                  replacement
+                                  c)))
+          (str sb))
+        s))))
 
 (defmulti ^:private emit first)
 
