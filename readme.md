@@ -4,7 +4,7 @@ Hiccup in pure Clojure
 
 ## Usage
 
-`io.github.escherize/huff {:git/sha "7f7e7dd1b52109cc056b104fedcaa7f8c17df5bc"}`
+`io.github.escherize/huff {:git/sha "2af31072ce08de831591ad55d8fcc247f8547eeb"}`
 
 ``` clojure
 (require '[huff.core :as h])
