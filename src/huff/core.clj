@@ -13,6 +13,7 @@
                [:fragment-node  [:catn
                                  [:fragment-indicator [:= :<>]]
                                  [:children           [:* [:schema [:ref "hiccup"]]]]]]
+               [:siblings-node [:catn [:children [:* [:schema [:ref "hiccup"]]]]]]
                [:tag-node       [:catn
                                  [:tag      simple-keyword?]
                                  [:attrs    [:map-of [:or :string :keyword :symbol] :any]]
@@ -168,37 +169,32 @@
 (defmethod emit :fragment-node [[_ {:keys [children]}]]
   (map emit children))
 
-(defn- list->fragment [x]
-  (walk/postwalk
-    (fn [x]
-      (cond->> x
-        (#{clojure.lang.PersistentList clojure.lang.LazySeq} (type x)) (into [:<>])))
-    x))
+(defmethod emit :siblings-node [[_ {:keys [children]}]]
+  (map emit children))
 
 (declare html)
 
 (defmethod emit :component-node [[_ {:keys [view-fxn children]}]]
-  (html (apply view-fxn children)))
+  (emit (parser (apply view-fxn children))))
 
 (declare re-string)
-
-(defn re-string-step
-  [sb iolist]
-  (cond
-    (string? iolist) (.append ^StringBuilder sb ^String iolist)
-    (coll? iolist) (re-string sb iolist)
-    (nil? iolist) sb
-    (char? iolist) (.append ^StringBuilder sb ^Character iolist)
-    :else (throw (ex-info "weird" {:h iolist}))))
 
 (defn re-string
   ([iolist] (let [sb (StringBuilder. (* 10 (count iolist)))]
          (str (re-string sb iolist))))
   ([sb h]
-   (reduce re-string-step sb h)))
+   (reduce
+     (fn [sb iolist]
+       (cond
+         (string? iolist) (.append ^StringBuilder sb ^String iolist)
+         (coll? iolist) (re-string sb iolist)
+         (nil? iolist) sb
+         (char? iolist) (.append ^StringBuilder sb ^Character iolist)
+         :else (throw (ex-info "weird" {:h iolist}))))
+     sb h)))
 
 (defn html [h]
-  (let [parsed (-> h list->fragment parser)]
+  (let [parsed (parser h)]
     (if (= parsed :malli.core/invalid)
       (let [{:keys [value]} (explainer h)]
         (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))

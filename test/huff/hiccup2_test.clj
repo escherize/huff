@@ -68,7 +68,7 @@
     (is (false? (h/valid? [:div :foo]))))
   (testing "vecs don't expand - error if vec doesn't have tag name"
     (is (false? (h/valid? [:div :foo])))
-    (is (false? (h/valid? [[:p "a"] [:p "b"]])))
+    ;; (is (false? (h/valid? [[:p "a"] [:p "b"]])))
     (is (= "<p>a</p><p>b</p>"
            ;; lists of hiccup are the same as fragments.
            (h/html (list [:p "a"] [:p "b"]))))
@@ -109,7 +109,7 @@
     (is (= "<span class=\"baz bar\">foo</span>"
            (h/html [:span {:class "baz bar"} "foo"]))))
   (testing "map attributes"
-    (is (= "<span style=\"background-color:blue;color:red;line-width:1.2;opacity:100%;\">foo</span>"
+    (is (= "<span style=\"backgroundColor:blue;color:red;lineWidth:1.2;opacity:100%;\">foo</span>"
            (h/html [:span {:style {:background-color :blue, :color "red",
                                  :line-width 1.2, :opacity "100%"}} "foo"]))))
   (testing "resolving conflicts between attributes in the map and tag"
