@@ -15,8 +15,8 @@
   (is (= "<div>x</div>"
          (h/html [:div "x"])))
 
-  (is (= (h/html [:div {:style {:color "red" :background "black"}} "x" [:div {:style {:padding "10px"}} "z"] "y"])
-         "<div style=\"background:black;color:red;\">x<div style=\"padding:10px;\">z</div>y</div>"))
+  (is (= (h/html [:div {:style {:color "red" :background-color "black"}} "x" [:div {:style {:padding "10px"}} "z"] "y"])
+         "<div style=\"background-color:black;color:red;\">x<div style=\"padding:10px;\">z</div>y</div>"))
 
   (is (= "<div id=\"id\" class=\"class\"></div>"
          (h/html [:div.class#id])))
@@ -82,5 +82,5 @@
          (binding [h/*escape?* false] (h/html [:div "\""])))))
 
 (deftest style-attr-args-test
-  (is (= "<div style=\"backgroundColor:red;\"></div>"
+  (is (= "<div style=\"background-color:red;\"></div>"
          (h/html [:div {:style {:background-color "red"}}]))))

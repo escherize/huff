@@ -109,7 +109,7 @@
     (is (= "<span class=\"baz bar\">foo</span>"
            (h/html [:span {:class "baz bar"} "foo"]))))
   (testing "map attributes"
-    (is (= "<span style=\"backgroundColor:blue;color:red;lineWidth:1.2;opacity:100%;\">foo</span>"
+    (is (= "<span style=\"background-color:blue;color:red;line-width:1.2;opacity:100%;\">foo</span>"
            (h/html [:span {:style {:background-color :blue, :color "red",
                                  :line-width 1.2, :opacity "100%"}} "foo"]))))
   (testing "resolving conflicts between attributes in the map and tag"

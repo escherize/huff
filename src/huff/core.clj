@@ -106,13 +106,13 @@
       (map [:tag :id :class])))
 
 (defn- emit-attr-value [k]
-  (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
+  (name k))
 
 (defn emit-style [sb s]
   (.append ^StringBuilder sb "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
-               [(.append ^StringBuilder sb (emit-attr-value k))
+               [(.append ^StringBuilder sb (name k))
                 (.append ^StringBuilder sb ":")
                 (.append ^StringBuilder sb (stringify v))
                 (.append ^StringBuilder sb ";")])
