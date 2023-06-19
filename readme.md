@@ -17,7 +17,7 @@ Hiccup in pure Clojure
 
 (h/html [:div {:style {:border "1px red solid"
                        :background-color "#ff00ff"}}])
-;; => "<div style=\"backgroundColor:#ff00ff;border:1px red solid;\"></div>"
+;; => "<div style=\"background-color:#ff00ff;border:1px red solid;\"></div>"
 
 (h/html [:hiccup/raw-html "<div>raw</div>"])
 ;; => "<div>raw</div>"
@@ -49,15 +49,13 @@ I wanted a juicy way to write html in babashka.
   - attribute names mapped to idiomatic html:
     - e.g. `:background-color` -> `backgroundColor`
 - Parse tags in any order
-  - `:div#id.class` or `:div.class#id` both work
+  - `:div#id.class` or `:div.class#id` both work (not the case for hiccup/hiccup)
 - Runs on babashka
 - HTML-encoded by default
 - Tested agianst slightly modified hiccup 2 tests
   - some philosophical differences
     - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
-- Performance is great!
-  - 30% faster than hi
-ccup
+- Performance: [30% faster than hiccup/hiccup]()
 
 ## Prior Art
 

@@ -31,7 +31,6 @@
 
   (is (= (h/html [:p "raw x"])
          (str "<p>" (h/html [:hiccup/raw-html "raw x"]) "</p>")))
-  true
 
   (is (= (h/html [:ul (for [n (range 3)] [:li n])])
          "<ul><li>0</li><li>1</li><li>2</li></ul>"))
@@ -55,15 +54,13 @@
         (h/html [:div {:style "border: 1px solid red"} "x"]))))
 
 (defn as-string [f]
-  (let [sb (StringBuilder.)]
-    (f sb)
-    (str sb)))
+  (let [sb (StringBuilder.)] (f sb) (str sb)))
 
 (deftest attr-emission-test
   (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]}))))
   (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"}))))
   (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []}))))
-  )
+  (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"})))))
 
 (deftest page-test
   (is (= (h/page [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
@@ -82,5 +79,5 @@
          (binding [h/*escape?* false] (h/html [:div "\""])))))
 
 (deftest style-attr-args-test
-  (is (= "<div style=\"backgroundColor:red;\"></div>"
+  (is (= "<div style=\"background-color:red;\"></div>"
          (h/html [:div {:style {:background-color "red"}}]))))
