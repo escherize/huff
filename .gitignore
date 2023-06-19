@@ -1,1 +1,6 @@
 .clj-kondo/.cache/v1/clj/cheshire.core.transit.json
+.clj-kondo/.cache/v1/lock
+.calva/
+.clj-kondo/
+.cpcache/
+.lsp/

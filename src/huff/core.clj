@@ -1,7 +1,6 @@
 (ns huff.core
   (:require
    [clojure.string :as str]
-   [clojure.walk :as walk]
    [malli.core :as m]))
 
 (set! *warn-on-reflection* true)
@@ -42,7 +41,9 @@
 
 (def ^:private parser (m/parser hiccup-schema))
 
-(defn stringify [text]
+(defn stringify 
+  "Take a primative, and turn it into a string."
+  [text]
   (cond
     (nil? text) ""
     (simple-keyword? text) (name text)
@@ -105,14 +106,11 @@
       (step \.) ;; move "seen " into the right place
       (map [:tag :id :class])))
 
-(defn- emit-attr-value [k]
-  (str/replace (name k) #"-([a-z])" (fn [[_ char]] (str/upper-case char))))
-
 (defn emit-style [sb s]
   (.append ^StringBuilder sb "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
-               [(.append ^StringBuilder sb (emit-attr-value k))
+               [(.append ^StringBuilder sb (stringify k))
                 (.append ^StringBuilder sb ":")
                 (.append ^StringBuilder sb (stringify v))
                 (.append ^StringBuilder sb ";")])
@@ -122,16 +120,16 @@
 
 (defn emit-attrs [sb attrs]
   (doseq [[k value] attrs]
-    (when-not (or (contains? #{false ""} value)
-                  (nil? value)
-                  (and (coll? value) (empty? value)))
+    (when-not
+        (or (contains? #{"" nil false} value)
+            (and (coll? value) (empty? value)))
       (.append ^StringBuilder sb " ")
       (cond
         (= :style k)
         (emit-style sb value)
 
         (coll? value)
-        (do (.append ^StringBuilder sb (emit-attr-value k))
+        (do (.append ^StringBuilder sb (stringify k))
             (.append ^StringBuilder sb "=\"")
             (doseq [x (interpose " " value)]
               (.append ^StringBuilder sb (escape-html x)))
@@ -139,7 +137,7 @@
 
         :else
         (let [escaped (escape-html value)]
-          (.append ^StringBuilder sb (emit-attr-value k))
+          (.append ^StringBuilder sb (stringify k))
           (.append ^StringBuilder sb "=\"")
           (.append ^StringBuilder sb escaped)
           (.append ^StringBuilder sb "\""))))))
