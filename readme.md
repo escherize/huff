@@ -4,7 +4,7 @@ Hiccup in pure Clojure
 
 ## Usage
 
-`io.github.escherize/huff {:git/sha "2af31072ce08de831591ad55d8fcc247f8547eeb"}`
+`io.github.escherize/huff {:git/sha "9c7b642dd093ab23f5a43311090a0bec43887e08"}`
 
 ``` clojure
 (require '[huff.core :as h])
@@ -55,7 +55,7 @@ I wanted a juicy way to write html in babashka.
 - Tested agianst slightly modified hiccup 2 tests
   - some philosophical differences
     - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
-- Performance: [30% faster than hiccup/hiccup]()
+- Performance: 29% faster than hiccup/hiccup
 
 ## Prior Art
 
