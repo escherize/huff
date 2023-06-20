@@ -86,6 +86,7 @@
   "Used to extract :.class.names.and#ids from keywords."
   [{:keys [mode seen] :as acc} char]
   (case mode
+    ;; TODO: :div>p>b style tags
     :tag (cond (= char \#) (assoc acc :tag (str/join seen) :seen [] :mode :id)
                (= char \.) (assoc acc :tag (if (empty? seen) "div" (str/join seen)) :seen [] :mode :class)
                :else (update acc :seen conj char))
@@ -151,12 +152,12 @@
 
 (defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}]]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
+        tag-classes' (remove str/blank? tag-classes)
         tag-name (name tag)]
     (.append ^StringBuilder sb "<")
     (.append ^StringBuilder sb ^String tag-name)
     (when (or tag-id (not-empty tag-classes))
       (emit-attrs sb {:id tag-id :class tag-classes}))
-
     (if (contains? void-tags tag-name)
       (.append ^StringBuilder sb " />")
       (do
@@ -171,10 +172,12 @@
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
         attrs (-> attrs
                   (update :id #(or % tag-id))
-                  (update :class #(cond
-                                    (string? %) (concat [%] tag-classes)
-                                    (coll? %) (concat % tag-classes)
-                                    (nil? %) tag-classes)))
+                  (update :class #(->>
+                                    (cond
+                                      (string? %) (concat [%] tag-classes)
+                                      (coll? %) (concat % tag-classes)
+                                      (nil? %) tag-classes)
+                                    (remove str/blank?))))
         tag-name (name tag)]
     (.append ^StringBuilder sb "<")
     (.append ^StringBuilder sb ^String tag-name)

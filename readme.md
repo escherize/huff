@@ -8,27 +8,60 @@ Hiccup in pure Clojure
 
 ``` clojure
 (require '[huff.core :as h])
+```
 
+Parse tags for id and class (in any order).
+
+```clojure
 (h/html [:div.hello#world "!"])
-;; => "<div class=\"hello\" id=\"world\">!</div>"
+;; => <div class="hello" id="world">!</div>
+```
 
-(h/html [:<> [:div "d"] [:span "s"]])
-;; => "<div>d</div><span>s</span>"
+[reagent](https://github.com/reagent-project/reagent)-like fragment tags
 
+```clojure
+(h/html [:<> [:div "d"] [:<> [:<> [:span "s"]]]])
+;; => 
+<div>d</div><span>s</span>
+
+;; This is useful for returning multiple elements from a function:
+
+(defn twins [x] [:<>
+                 [:div.a x]
+                 [:div.b x]])
+
+(h/html [:span.parent [twins "elements"]])
+;;=>
+<span class="parent">
+  <div class="a">elements</div>
+  <div class="b">elements</div>
+</span>
+
+```
+
+```clojure
 (h/html [:div {:style {:border "1px red solid"
                        :background-color "#ff00ff"}}])
-;; => "<div style=\"background-color:#ff00ff;border:1px red solid;\"></div>"
+;; => <div style="background-color:#ff00ff;border:1px red solid;"></div>
+```
 
+```clojure
 (h/html [:hiccup/raw-html "<div>raw</div>"])
-;; => "<div>raw</div>"
+;; => <div>raw</div>
+```
 
+```clojure
 (defn str-info [s]
   [:div.info
    [:span (apply str (reverse s))]
    [:pre.len "Length: " (count s)]])
 
 (h/html [str-info "hello"])
-;; => "<div class=\"info\"><span>olleh</span><pre class=\"len\">Length: 5</pre></div>"
+;; => 
+<div class="info">
+  <span>olleh</span>
+  <pre class="len">Length: 5</pre>
+</div>
 ```
 
 ## Rationale
