@@ -74,7 +74,12 @@
   (is (= "<div>&quot;</div>" (h/html [:div "\""])))
   (is (= "<div>&#39;</div>"  (h/html [:div "\\"])))
   (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>&#39;</div>"
-         (h/html [:<>[:div "&"] [:div "<"] [:div ">"] [:div "\""] [:div "\\"]]))))
+         (h/html [:<>
+                  [:div "&"]
+                  [:div "<"]
+                  [:div ">"]
+                  [:div "\""]
+                  [:div "\\"]]))))
 
 (deftest unescape-test
   (is (= "<div>\"</div>"
@@ -83,3 +88,10 @@
 (deftest style-attr-args-test
   (is (= "<div style=\"background-color:red;\"></div>"
          (h/html [:div {:style {:background-color "red"}}]))))
+
+
+(deftest style-attr-numeric-values-append-px
+  (is (= (h/html [:div {:style {:width (* 5 2)}}])
+         "<div style=\"width:10px;\"></div>"))
+  (is (= (h/html [:div {:style {:height (* 50 2)}}])
+         "<div style=\"height:100px;\"></div>")))

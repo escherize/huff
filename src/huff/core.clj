@@ -114,6 +114,7 @@
                [(.append ^StringBuilder sb (stringify k))
                 (.append ^StringBuilder sb ":")
                 (.append ^StringBuilder sb (stringify v))
+                (when (number? v) (.append ^StringBuilder sb "px"))
                 (.append ^StringBuilder sb ";")])
     (string? s) (.append ^StringBuilder sb s)
     :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
