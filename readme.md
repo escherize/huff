@@ -53,15 +53,17 @@ This is useful for returning multiple elements from a function:
 
 ### Raw HTML tag:
 
-This is nice if you want to e.g. produce markdown in the middle of your hiccup.
+This is nice if you want to e.g. produce markdown in the middle of your hiccup.  note: This is disabled by default and must be manually enabled in the call to `html` or `page`,
 
-```clojure
+``` clojure
+
 (h/html [:hiccup/raw-html "<div>raw</div>"])
-;; => <div>raw</div>
+;; =Throws=> ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?""
 
-(h/html [:hiccup/raw-html [markdownize "# *Hello*"]])
-;; => <h1><strong>Hello</strong></h1>
+(h/html {:allow-raw true} [:hiccup/raw-html "<div>raw</div>"])
+;;=> "<div>raw</div>"
 ```
+
 
 ### Use functons as components
 
@@ -102,7 +104,7 @@ I wanted a juicy way to write html in babashka.
   - style maps
   - fragments to return multiple sibling forms
   - call **functions** like **components**
-   - `:hiccup/raw-html` tag to bypass compilation
+  - `:hiccup/raw-html` tag to bypass compilation (turned off by default for security)
   - included function to check for valid hiccup
   - attribute names mapped to idiomatic html:
     - e.g. `:background-color` -> `backgroundColor`

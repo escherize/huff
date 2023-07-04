@@ -22,6 +22,8 @@
   ;; drop 1 because no fragment support, but lists do work:
   (time (def oo (hiccup/html (drop 1 page-edn))))
 
+  (time (def xx (h/html page-edn)))
+
   (do
     (println "### Benching hiccup\n```")
     (bench/bench (hiccup/html (drop 1 page-edn)))

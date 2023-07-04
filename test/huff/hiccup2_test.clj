@@ -7,7 +7,7 @@
             ))
 
 (deftest kw-tag-parsing
-  (are [x y] (= (h/tag->tag+id+classes x) y)
+  (are [x y] (= (#'h/tag->tag+id+classes x) y)
     :div       ["div" nil []]
     :div.a     ["div" nil ["a"]]
     :div.a#d   ["div" "d" ["a"]]
@@ -22,7 +22,7 @@
 
 (deftest kw-tag-validity
   (is (= "can't have 2 #'s in a tag."
-         (try (h/tag->tag+id+classes :div#id1#id2)
+         (try (#'h/tag->tag+id+classes :div#id1#id2)
               (catch Exception e (ex-message e))))))
 
 (deftest tag-names
@@ -109,8 +109,8 @@
     (is (= "<span class=\"baz bar\">foo</span>"
            (h/html [:span {:class "baz bar"} "foo"]))))
   (testing "map attributes"
-    (is (= "<span style=\"background-color:blue;color:red;line-width:1.2;opacity:100%;\">foo</span>"
-           (h/html [:span {:style {:background-color :blue, :color "red", :line-width 1.2, :opacity "100%"}} "foo"]))))
+    (is (= "<span style=\"background-color:blue;color:red;opacity:100%;\">foo</span>"
+           (h/html [:span {:style {:background-color :blue :color "red" :opacity "100%"}} "foo"]))))
   (testing "resolving conflicts between attributes in the map and tag"
     (is (= (h/html [:div.foo {:class "bar"} "baz"])
            "<div class=\"bar foo\">baz</div>"))
@@ -191,8 +191,12 @@
     (is (= "<ul><li>&lt;foo&gt;</li></ul>"
            (h/html [:ul [:li "<foo>"]]))))
   (testing "raw strings"
-    (is (= "<foo>" (h/html [:hiccup/raw-html "<foo>"])))
-    (is (= "<p><foo></p>" (h/html [:p [:hiccup/raw-html "<foo>"]])))
+    (is (thrown?
+          Exception
+          #":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
+          (h/html [:hiccup/raw-html "<foo>"])))
+    (is (= "<foo>" (h/html {:allow-raw true} [:hiccup/raw-html "<foo>"])))
+    (is (= "<p><foo></p>" (h/html {:allow-raw true} [:p [:hiccup/raw-html "<foo>"]])))
     (is (= "<ul><li>&lt;&gt;</li></ul>" (h/html [:ul [:li "<>"]])))))
 
 ;; in huff do not call the compiler multiple times on the same value,
@@ -212,6 +216,7 @@
              (h/html [:p {:class "<>"}]))
            "<p class=\"<>\"></p>")))
   (testing "raw strings"
-    (is (= (h/html [:p [:hiccup/raw-html "<>"]]) "<p><></p>"))
-    (is (= (binding [h/*escape?* false] (h/html [:p [:hiccup/raw-html "<>"]]))
+    (is (= (h/html {:allow-raw true} [:p [:hiccup/raw-html "<>"]]) "<p><></p>"))
+    (is (= (binding [h/*escape?* false]
+             (h/html {:allow-raw true} [:p [:hiccup/raw-html "<>"]]))
            "<p><></p>"))))

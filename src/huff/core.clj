@@ -77,9 +77,9 @@
             (str sb))
           s)))))
 
-(defmulti ^:private emit (fn [_sb form] (first form)))
+(defmulti ^:private emit (fn [_sb form opts] (first form)))
 
-(defmethod emit :primative [sb [_ x]]
+(defmethod emit :primative [sb [_ x] _opts]
   (.append ^StringBuilder sb ^String (escape-html x)))
 
 (defn step
@@ -87,20 +87,26 @@
   [{:keys [mode seen] :as acc} char]
   (case mode
     ;; TODO: :div>p>b style tags
-    :tag (cond (= char \#) (assoc acc :tag (str/join seen) :seen [] :mode :id)
+    :tag (cond (= char \#) (assoc acc :tag (if (empty? seen) "id" (str/join seen)) :seen [] :mode :id)
                (= char \.) (assoc acc :tag (if (empty? seen) "div" (str/join seen)) :seen [] :mode :class)
+               (= char \>) (assoc acc :tag (if (empty? seen) (throw
+                                                               (ex-info "cannot have unnamed > form in tag:" {:seen seen :acc acc}))
+                                               (str/join seen)))
                :else (update acc :seen conj char))
+    :nexted (cond (= char \#) (assoc acc :tag (str/join seen) :seen [] :mode :id)
+                  (= char \.) (assoc acc :tag (if (empty? seen) "div" (str/join seen)) :seen [] :mode :class)
+                  :else (update acc :seen conj char)) 
     :id (cond (= char \#) (throw (ex-info "can't have 2 #'s in a tag." {:acc acc}))
               (= char \.) (assoc acc :id (str/join seen) :seen [] :mode :class) :else (update acc :seen conj char))
     :class (cond (= char \#) (-> acc
-                                 (update :class conj (str/join seen))
+                                 (update :class (fn [c] (cond-> c (not-empty seen) (conj (str/join seen)))))
                                  (assoc :seen [] :mode :id))
                  (= char \.) (-> acc
-                                 (update :class conj (str/join seen))
+                                 (update :class (fn [c] (cond-> c (not-empty seen) (conj  (str/join seen)))))
                                  (assoc :seen [] :mode :class))
                  :else (update acc :seen conj char))))
 
-(defn tag->tag+id+classes [tag]
+(defn- tag->tag+id+classes [tag]
   (-> (reduce step
               {:mode :tag :class [] :seen [] :id nil}
               (name tag))
@@ -151,25 +157,25 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}]]
+(defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}] opts]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
         tag-classes' (remove str/blank? tag-classes)
         tag-name (name tag)]
     (.append ^StringBuilder sb "<")
     (.append ^StringBuilder sb ^String tag-name)
-    (when (or tag-id (not-empty tag-classes))
-      (emit-attrs sb {:id tag-id :class tag-classes}))
+    (when (or tag-id (not-empty tag-classes'))
+      (emit-attrs sb {:id tag-id :class tag-classes'}))
     (if (contains? void-tags tag-name)
       (.append ^StringBuilder sb " />")
       (do
         (.append ^StringBuilder sb ">")
         (doseq [c children]
-          (emit sb c))
+          (emit sb c opts))
         (.append ^StringBuilder sb "</")
         (.append ^StringBuilder sb tag-name)
         (.append ^StringBuilder sb ">")))))
 
-(defmethod emit :tag-node [sb [_ {:keys [tag attrs children]}]]
+(defmethod emit :tag-node [sb [_ {:keys [tag attrs children]}] opts]
   (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
         attrs (-> attrs
                   (update :id #(or % tag-id))
@@ -186,32 +192,40 @@
     (if (contains? void-tags tag-name)
       (.append ^StringBuilder sb " />")
       (do (.append ^StringBuilder sb ">")
-          (doseq [c children] (emit sb c))
+          (doseq [c children] (emit sb c opts))
           (.append ^StringBuilder sb "</")
           (.append ^StringBuilder sb ^String tag-name)
           (.append ^StringBuilder sb ">")))))
 
-(defmethod emit :raw-node [sb [_ {:keys [content]}]]
+(defmethod emit :raw-node [sb [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
+  (when-not allow-raw
+    (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
+                    {:content content :allow-raw allow-raw})))
   (.append ^StringBuilder sb content))
 
-(defmethod emit :fragment-node [sb [_ {:keys [children]}]]
+(defmethod emit :fragment-node [sb [_ {:keys [children]}] opts]
   (doseq [c children]
-    (emit ^StringBuilder sb c)))
+    (emit ^StringBuilder sb c opts)))
 
-(defmethod emit :siblings-node [sb [_ {:keys [children]}]]
+(defmethod emit :siblings-node [sb [_ {:keys [children]}] opts]
   (doseq [c children]
-    (emit ^StringBuilder sb c)))
+    (emit ^StringBuilder sb c opts)))
 
-(defmethod emit :component-node [sb [_ {:keys [view-fxn children]}]]
-  (emit sb (parser (apply view-fxn children))))
+(defmethod emit :component-node [sb [_ {:keys [view-fxn children]}] opts]
+  (emit sb (parser (apply view-fxn children)) opts))
 
-(defn html [h]
-  (let [parsed (parser h)]
-    (if (= parsed :malli.core/invalid)
-      (let [{:keys [value]} (explainer h)]
-        (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
-      (let [sb (StringBuilder.)]
-        (emit sb parsed)
-        (str sb)))))
+(defn html
+  ([h] (html {} h))
+  ([{:keys [allow-raw] :or {allow-raw false}} h]
+   (let [parsed (parser h)]
+     (if (= parsed :malli.core/invalid)
+       (let [{:keys [value]} (explainer h)]
+         (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
+       (let [sb (StringBuilder.)]
+         (emit sb parsed {:allow-raw allow-raw})
+         (str sb))))))
 
-(defn page [h] (html [:<> [:hiccup/raw-html "<!doctype html>"] h]))
+(defn page
+  ([h] (page {} h))
+  ([opts h]
+   (html opts [:<> [:hiccup/raw-html "<!doctype html>"] h])))
