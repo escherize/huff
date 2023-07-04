@@ -4,7 +4,7 @@ Hiccup in pure Clojure
 
 ## Usage
 
-`io.github.escherize/huff {:git/sha "6982bd1c1045ffb6787f8def4b7a67aefeb47c18"}`
+`io.github.escherize/huff {:git/sha "54301a3931064028e98d71d85ace5901aa0de8de"}`
 
 ``` clojure
 (require '[huff.core :as h])
@@ -17,6 +17,14 @@ Parse tags for id and class (in any order).
 ```clojure
 (h/html [:div.hello#world "!"])
 ;; => <div class="hello" id="world">!</div>
+```
+
+#### Nested tag parsing
+
+```clojure
+(println (h/html [:div.left-aligned>p#user-parent>span {:id "user-name"} "Jason"]))
+
+;=> <div class="left-aligned"><p id="user-parent"><span id="user-name">Jason</span></p></div>
 ```
 
 ### [reagent](https://github.com/reagent-project/reagent)-like fragment tags
