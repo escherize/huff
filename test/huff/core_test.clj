@@ -32,7 +32,8 @@
          "<h1 style=\"border:1px solid red;\">k</h1>"))
 
   (is (= (h/html [:p "raw x"])
-         (str "<p>" (h/html [:hiccup/raw-html "raw x"]) "</p>")))
+         (str "<p>" (h/html {:allow-raw true}
+                            [:hiccup/raw-html "raw x"]) "</p>")))
 
   (is (= (h/html [:ul (for [n (range 3)] [:li n])])
          "<ul><li>0</li><li>1</li><li>2</li></ul>"))
@@ -65,7 +66,7 @@
   (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"})))))
 
 (deftest page-test
-  (is (= (h/page [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
+  (is (= (h/page {:allow-raw true} [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
 
 (deftest escape-test
   (is (= "<div>&amp;</div>"  (h/html [:div "&"])))
@@ -95,3 +96,27 @@
          "<div style=\"width:10px;\"></div>"))
   (is (= (h/html [:div {:style {:height (* 50 2)}}])
          "<div style=\"height:100px;\"></div>")))
+
+(deftest dot-shortcut-for-div
+  (is (= (#'h/tag->tag+id+classes :.) (#'h/tag->tag+id+classes :div))))
+
+(deftest lists-work-for-spreading
+  (is (= "<div><span>ok</span></div>" (h/html [:div '([:span "ok"])])))
+  (is (= "<div></div>" (h/html [:<> '([:div])]))))
+
+(deftest html-raw-disallowed-test
+  (is (= {:content "<script>mine bitcoin</script>", :allow-raw false}
+         (try (h/html [:hiccup/raw-html "<script>mine bitcoin</script>"])
+              (catch Exception e (ex-data e)))))
+
+  (is (= "<script>mine bitcoin</script>"
+         (h/html {:allow-raw true}
+                 [:hiccup/raw-html "<script>mine bitcoin</script>"]))))
+
+(deftest page-raw-allowed-test
+  (is (= {:content "<!doctype html>", :allow-raw false}
+         (try (h/page [:h1 1])
+              (catch Exception e (ex-data e)))))
+
+  (is (= "<!doctype html><h1>1</h1>"
+         (h/page {:allow-raw true} [:h1 1]))))
