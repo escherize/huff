@@ -73,7 +73,7 @@ This is nice if you want to e.g. produce markdown in the middle of your hiccup. 
 ```
 
 
-### Use functons as components
+### Use functions as components
 
 Write a function that returns hiccup, and call it from the first position of a vector, like in [reagent](https://cljdoc.org/d/reagent/reagent/1.2.0/doc/tutorials/using-square-brackets-instead-of-parentheses-#using-greet-via--1).
 
