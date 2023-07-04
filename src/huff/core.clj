@@ -60,42 +60,33 @@
    \" "&quot;"
    \\ "&#39;"})
 
-(defn escape-html
-  "Change special characters into HTML character entities."
-  [text]
+(defn maybe-escape-html
+  "1. Change special characters into HTML character entities when *escape?* otherwise don't change text.
+   2. Append the maybe-transformed text value onto a stringbuilder"
+  [sb text]
   (let [text-str (stringify text)]
-    (if-not (and *escape?* (some char->replacement text-str))
-      text-str
-      (let [s (into [] (stringify text))
-            sb (StringBuilder.)]
-        (if *escape?*
-          (do
-            (doseq [c s] (.append ^StringBuilder sb
-                                  (if-let [replacement (char->replacement c)]
-                                    replacement
-                                    c)))
-            (str sb))
-          s)))))
+    (if-not *escape?*
+      (.append ^StringBuilder sb text-str)
+      (let [some-replacement? (some char->replacement text-str)]
+        (if some-replacement?
+          (let [s (into [] text-str)]
+            (doseq [c s] (.append ^StringBuilder sb (char->replacement c c))))
+          (.append ^StringBuilder sb text-str))))))
 
 (defmulti ^:private emit (fn [_sb form opts] (first form)))
 
 (defmethod emit :primative [sb [_ x] _opts]
-  (.append ^StringBuilder sb ^String (escape-html x)))
+  (maybe-escape-html sb x))
+
+(defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
 (defn step
   "Used to extract :.class.names.and#ids from keywords."
   [{:keys [mode seen] :as acc} char]
   (case mode
-    ;; TODO: :div>p>b style tags
-    :tag (cond (= char \#) (assoc acc :tag (if (empty? seen) "id" (str/join seen)) :seen [] :mode :id)
-               (= char \.) (assoc acc :tag (if (empty? seen) "div" (str/join seen)) :seen [] :mode :class)
-               (= char \>) (assoc acc :tag (if (empty? seen) (throw
-                                                               (ex-info "cannot have unnamed > form in tag:" {:seen seen :acc acc}))
-                                               (str/join seen)))
+    :tag (cond (= char \#) (assoc acc :tag (empty-or-div seen) :seen [] :mode :id)
+               (= char \.) (assoc acc :tag (empty-or-div seen) :seen [] :mode :class)
                :else (update acc :seen conj char))
-    :nexted (cond (= char \#) (assoc acc :tag (str/join seen) :seen [] :mode :id)
-                  (= char \.) (assoc acc :tag (if (empty? seen) "div" (str/join seen)) :seen [] :mode :class)
-                  :else (update acc :seen conj char)) 
     :id (cond (= char \#) (throw (ex-info "can't have 2 #'s in a tag." {:acc acc}))
               (= char \.) (assoc acc :id (str/join seen) :seen [] :mode :class) :else (update acc :seen conj char))
     :class (cond (= char \#) (-> acc
@@ -106,14 +97,18 @@
                                  (assoc :seen [] :mode :class))
                  :else (update acc :seen conj char))))
 
-(defn- tag->tag+id+classes [tag]
+(defn- tag->tag+id+classes* [tag]
   (-> (reduce step
               {:mode :tag :class [] :seen [] :id nil}
               (name tag))
       (step \.) ;; move "seen " into the right place
       (map [:tag :id :class])))
 
-(defn emit-style [sb s]
+(defn- tag->tag+id+classes [tag]
+  (let [nested-tags (map keyword (str/split (name tag) #">"))]
+    (mapv tag->tag+id+classes* nested-tags)))
+
+(defn- emit-style [sb s]
   (.append ^StringBuilder sb "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
@@ -126,7 +121,7 @@
     :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
   (.append ^StringBuilder sb "\""))
 
-(defn emit-attrs [sb attrs]
+(defn- emit-attrs [sb attrs]
   (doseq [[k value] attrs]
     (when-not
         (or (contains? #{"" nil false} value)
@@ -139,16 +134,14 @@
         (coll? value)
         (do (.append ^StringBuilder sb (stringify k))
             (.append ^StringBuilder sb "=\"")
-            (doseq [x (interpose " " value)]
-              (.append ^StringBuilder sb (escape-html x)))
+            (doseq [x (interpose " " value)] (maybe-escape-html sb x))
             (.append ^StringBuilder sb "\""))
 
         :else
-        (let [escaped (escape-html value)]
-          (.append ^StringBuilder sb (stringify k))
-          (.append ^StringBuilder sb "=\"")
-          (.append ^StringBuilder sb escaped)
-          (.append ^StringBuilder sb "\""))))))
+        (do (.append ^StringBuilder sb (stringify k))
+            (.append ^StringBuilder sb "=\"")
+            (maybe-escape-html sb value)
+            (.append ^StringBuilder sb "\""))))))
 
 ;; lifted from hiccup.compiler
 (def ^{:doc "A list of elements that must be rendered without a closing tag."
@@ -158,49 +151,58 @@
   "link" "meta" "param" "source" "track" "wbr"})
 
 (defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}] opts]
-  (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
-        tag-classes' (remove str/blank? tag-classes)
-        tag-name (name tag)]
-    (.append ^StringBuilder sb "<")
-    (.append ^StringBuilder sb ^String tag-name)
-    (when (or tag-id (not-empty tag-classes'))
-      (emit-attrs sb {:id tag-id :class tag-classes'}))
-    (if (contains? void-tags tag-name)
-      (.append ^StringBuilder sb " />")
-      (do
-        (.append ^StringBuilder sb ">")
-        (doseq [c children]
-          (emit sb c opts))
+  (let [tag-infos (tag->tag+id+classes tag)]
+    ;; emit opening tags:
+    (doseq [[tag tag-id tag-classes] tag-infos]
+      (let [tag-classes' (remove str/blank? tag-classes)]
+        (.append ^StringBuilder sb "<")
+        (.append ^StringBuilder sb ^String (name tag))
+        (when (or tag-id (not-empty tag-classes'))
+          (emit-attrs sb {:id tag-id :class tag-classes'}))
+        (if (contains? void-tags (name tag))
+          (.append ^StringBuilder sb " />")
+          (.append ^StringBuilder sb ">"))))
+    ;;children
+    (doseq [c children] (emit ^StringBuilder sb c opts))
+    ;;closing tags
+    (doseq [[tag] (reverse tag-infos)]
+      (when-not (contains? void-tags (name tag))
         (.append ^StringBuilder sb "</")
-        (.append ^StringBuilder sb tag-name)
+        (.append ^StringBuilder sb (name tag))
         (.append ^StringBuilder sb ">")))))
 
 (defmethod emit :tag-node [sb [_ {:keys [tag attrs children]}] opts]
-  (let [[tag tag-id tag-classes] (tag->tag+id+classes tag)
+  (let [tag-infos (tag->tag+id+classes tag)
+        [_final-tag final-tag-id final-tag-classes] (last tag-infos)
         attrs (-> attrs
-                  (update :id #(or % tag-id))
+                  (update :id #(or % final-tag-id))
                   (update :class #(->>
                                     (cond
-                                      (string? %) (concat [%] tag-classes)
-                                      (coll? %) (concat % tag-classes)
-                                      (nil? %) tag-classes)
+                                      (string? %) (concat [%] final-tag-classes)
+                                      (coll? %) (concat % final-tag-classes)
+                                      (nil? %) final-tag-classes)
                                     (remove str/blank?))))
-        tag-name (name tag)]
-    (.append ^StringBuilder sb "<")
-    (.append ^StringBuilder sb ^String tag-name)
-    (emit-attrs sb attrs)
-    (if (contains? void-tags tag-name)
-      (.append ^StringBuilder sb " />")
-      (do (.append ^StringBuilder sb ">")
-          (doseq [c children] (emit sb c opts))
-          (.append ^StringBuilder sb "</")
-          (.append ^StringBuilder sb ^String tag-name)
-          (.append ^StringBuilder sb ">")))))
+        ;; attrs go on the last tag-info:
+        tag-infos' (update tag-infos (dec (count tag-infos)) (fn [l] (conj (vec l) attrs)))]
+    (doseq [[tag tag-id tag-classes & [attrs]] tag-infos']
+      (.append ^StringBuilder sb "<")
+      (.append ^StringBuilder sb ^String (name tag))
+      (if attrs
+        (emit-attrs sb attrs)
+        (emit-attrs sb {:id tag-id :class (remove str/blank? tag-classes)}))
+      (if (contains? void-tags (name tag))
+        (.append ^StringBuilder sb " />")
+        (.append ^StringBuilder sb ">")))
+    (doseq [c children] (emit ^StringBuilder sb c opts))
+    (doseq [[tag] (reverse tag-infos')]
+      (when-not (contains? void-tags (name tag))
+        (.append ^StringBuilder sb "</")
+        (.append ^StringBuilder sb ^String (name tag))
+        (.append ^StringBuilder sb ">")))))
 
 (defmethod emit :raw-node [sb [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
   (when-not allow-raw
-    (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
-                    {:content content :allow-raw allow-raw})))
+    (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?" {:content content :allow-raw allow-raw})))
   (.append ^StringBuilder sb content))
 
 (defmethod emit :fragment-node [sb [_ {:keys [children]}] opts]
@@ -212,7 +214,7 @@
     (emit ^StringBuilder sb c opts)))
 
 (defmethod emit :component-node [sb [_ {:keys [view-fxn children]}] opts]
-  (emit sb (parser (apply view-fxn children)) opts))
+  (emit ^StringBuilder sb (parser (apply view-fxn children)) opts))
 
 (defn html
   ([h] (html {} h))
@@ -222,7 +224,7 @@
        (let [{:keys [value]} (explainer h)]
          (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
        (let [sb (StringBuilder.)]
-         (emit sb parsed {:allow-raw allow-raw})
+         (emit ^StringBuilder sb parsed {:allow-raw allow-raw})
          (str sb))))))
 
 (defn page

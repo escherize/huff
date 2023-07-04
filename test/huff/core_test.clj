@@ -12,6 +12,11 @@
 (deftest simple-html-test
   (is (= "<div class=\"x\">y</div>" (h/html [:div {:class "x"} "y"])))
 
+  (is (= "<div class=\"x g\">y</div>" (h/html [:div.g {:class "x"} "y"])))
+
+  (is (=  "<div class=\"parent\"><div class=\"me-go-onto-child child\" id=\"me-too\">y</div></div>"
+          (h/html [:.parent>div.child {:class "me-go-onto-child" :id "me-too"} "y"])))
+
   (is "<div></div>" (h/html [:div]))
 
   (is (= "<div>x</div>"
