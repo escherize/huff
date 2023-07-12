@@ -1,1 +1,11 @@
-{:deps {com.escherize/huff {:local/root "."}}}
+{:deps {com.escherize/huff {:local/root "."}}
+ :tasks
+ {uber {:doc "Build uberjar"
+        :task (do
+                (println "Building uberjar...")
+                (clojure "-T:build jar"))}
+
+  deploy {:doc "Deploy to Clojars"
+          :task (do
+                  (println "Deploying to clojars")
+                  (clojure "-T:build deploy"))}}}
