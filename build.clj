@@ -12,7 +12,7 @@
     (if (seq tag) tag "0.1-SNAPSHOT")))
 
 
-(def lib 'io.github.escherize/huff.git)
+(def lib 'io.github.escherize/huff)
 (def main 'huff.core)
 (def version (git-tag))
 (def class-dir "target/classes")
