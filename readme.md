@@ -10,6 +10,21 @@ Hiccup in pure Clojure
 (require '[huff.core :as h])
 ```
 
+## Features
+
+- Style maps `[:. {:style {:font-size 30}}]` 🎨
+- Use [**functions** like **components**](#use-functons-as-components) 🪢
+- HTML-encoded by default ⛓️
+- Parse tags [in any order](#tag-parsing) 🔀
+  - `:div#id.c` or `:div.c#id` both work (not the case for `hiccup/hiccup`)
+- Runs on [babashka](https://github.com/babashka/babashka) (unlike `lambdaisland/hiccup`) 👵
+- Performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8) 🏎
+- Reagent style fragments to return multiple forms `[:<> [:li.a] [:li.b]]` 🙂
+- Hiccup style fragments to return multiple forms `(list [:li.a] [:li.b])` 🙃
+- Opt-in `:hiccup/raw-html` tag to partially bypass compilation 📦
+- Tested against slightly modified hiccup 2 tests 🩺
+- Extreme shorthand syntax `[:. {:color :red}]` 💥
+
 ### Tag Parsing
 
 Parse tags for id and class (in any order).
@@ -51,12 +66,35 @@ This is useful for returning multiple elements from a function:
 
 ```
 
+Nest and combine them with lists to better convey intent to expand:
+
+``` clojure
+(h/html
+  [:ol
+   [:<> (for [x [1 2]]
+          [:li>p.green {:id (str "id-" x)} x])]])
+
+;;=>
+<ol>
+ <li>
+   <p id=\"id-1\" class=\"green\">1</p>
+ </li>
+ <li>
+   <p id=\"id-2\" class=\"green\">2</p>
+ </li>
+</ol>
+
+```
+
 ### Style map rendering
 
 ```clojure
 (h/html [:div {:style {:border "1px red solid"
                        :background-color "#ff00ff"}}])
 ;; => <div style="background-color:#ff00ff;border:1px red solid;"></div>
+
+(h/html [:. {:style {:width 3}}])
+;;=> <div style=\"width:3px;\"></div>
 ```
 
 ### Raw HTML tag:
@@ -71,7 +109,6 @@ This is nice if you want to e.g. produce markdown in the middle of your hiccup. 
 (h/html {:allow-raw true} [:hiccup/raw-html "<div>raw</div>"])
 ;;=> "<div>raw</div>"
 ```
-
 
 ### Use functons as components
 
@@ -98,37 +135,6 @@ Write a function that returns hiccup, and call it from the first position of a v
 
 ;;=> <div style="width:10px;"></div>
 ```
-
-## Rationale
-
-I wanted a juicy way to write html in babashka.
-
-- [hiccup](https://github.com/weavejester/hiccup) has less features
-- [lambdaisland/hiccup](https://github.com/lambdaisland/hiccup) relies on some java libs that don't work on babashka.
-
-## Features
-
-- Reagent-like conveniences
-  - 🎨 style maps!
-  - 🪢 call **functions** like **components**!
-  - 📦 `:hiccup/raw-html` tag to bypass compilation (turned off by default for security)
-  - 🦺 included function to check for valid hiccup
-  - 🔀 Parse tags in any order!
-    - `:div#id.class` or `:div.class#id` both work (not the case for hiccup/hiccup)
-  - 👵 Runs on babashka
-  - ⛓️ HTML-encoded by default
-  - 🙂 Reagent style fragments to return multiple sibling forms 
-  ```
-  [:ol [:<> [:li.a] [:li.b]]]
-  ```
-  - 🙃 Hiccup style fragments to return multiple sibling forms
-  ```
-  [:ol (list [:li.a] [:li.b])]
-  ```
-  - 📜 some philosophical differences
-    - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
-  - 🩺 tested against slightly modified hiccup 2 tests
-  - 🏎️ performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8)
 
 ## Prior Art
 
