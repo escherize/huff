@@ -125,7 +125,7 @@ I wanted a juicy way to write html in babashka.
   ```
   [:ol (list [:li.a] [:li.b])]
   ```
-  - 📜 a few some philosophical differences
+  - 📜 some philosophical differences
     - e.g. we dont support some shapes hiccup does, like: `{:a :b}`
   - 🩺 tested against slightly modified hiccup 2 tests
   - 🏎️ performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8)
