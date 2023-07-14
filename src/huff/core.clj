@@ -80,6 +80,19 @@
 
 (defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
+(defn- emit-style [sb s]
+  (.append ^StringBuilder sb "style=\"")
+  (cond
+    (map? s) (doseq [[k v] (sort-by first s)]
+               [(.append ^StringBuilder sb (stringify k))
+                (.append ^StringBuilder sb ":")
+                (.append ^StringBuilder sb (stringify v))
+                (when (number? v) (.append ^StringBuilder sb "px"))
+                (.append ^StringBuilder sb ";")])
+    (string? s) (.append ^StringBuilder sb s)
+    :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
+  (.append ^StringBuilder sb "\""))
+
 (defn step
   "Used to extract :.class.names.and#ids from keywords."
   [{:keys [mode seen] :as acc} char]
@@ -105,21 +118,7 @@
       (map [:tag :id :class])))
 
 (defn- tag->tag+id+classes [tag]
-  (let [nested-tags (map keyword (str/split (name tag) #">"))]
-    (mapv tag->tag+id+classes* nested-tags)))
-
-(defn- emit-style [sb s]
-  (.append ^StringBuilder sb "style=\"")
-  (cond
-    (map? s) (doseq [[k v] (sort-by first s)]
-               [(.append ^StringBuilder sb (stringify k))
-                (.append ^StringBuilder sb ":")
-                (.append ^StringBuilder sb (stringify v))
-                (when (number? v) (.append ^StringBuilder sb "px"))
-                (.append ^StringBuilder sb ";")])
-    (string? s) (.append ^StringBuilder sb s)
-    :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
-  (.append ^StringBuilder sb "\""))
+  (mapv (comp tag->tag+id+classes* keyword) (str/split (name tag) #">")))
 
 (defn- emit-attrs [sb attrs]
   (doseq [[k value] attrs]
