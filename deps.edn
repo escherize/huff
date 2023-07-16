@@ -4,4 +4,8 @@
                   :extra-deps  {hiccup/hiccup           {:mvn/version "1.0.5"}
                                 com.lambdaisland/hiccup {:mvn/version "0.0.25"}
                                 com.taoensso/tufte      {:mvn/version "2.4.5"}
-                                criterium/criterium     {:mvn/version "0.4.6"}}}}}
+                                criterium/criterium     {:mvn/version "0.4.6"}}}
+
+           :build {:ns-default build
+                   :deps {io.github.seancorfield/build-clj {:git/tag "v0.8.3" :git/sha "7ac1f8d"}
+                          io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}}}}}
