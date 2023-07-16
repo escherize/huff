@@ -217,7 +217,7 @@
 
 (defn html
   ([h] (html {} h))
-  ([{:keys [allow-raw] :or {allow-raw false}} h]
+  ([{:keys [allow-raw] :or {allow-raw false} :as _opts} h]
    (let [parsed (parser h)]
      (if (= parsed :malli.core/invalid)
        (let [{:keys [value]} (explainer h)]
@@ -228,5 +228,4 @@
 
 (defn page
   ([h] (page {} h))
-  ([opts h]
-   (html opts [:<> [:hiccup/raw-html "<!doctype html>"] h])))
+  ([opts h] (html opts (str "<!doctype html>" h))))
