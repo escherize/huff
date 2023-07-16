@@ -228,4 +228,4 @@
 
 (defn page
   ([h] (page {} h))
-  ([opts h] (html opts (str "<!doctype html>" h))))
+  ([opts h] (str "<!doctype html>" (html opts h))))

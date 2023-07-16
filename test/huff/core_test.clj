@@ -119,8 +119,8 @@
                  [:hiccup/raw-html "<script>mine bitcoin</script>"]))))
 
 (deftest page-raw-allowed-test
-  (is (= {:content "<!doctype html>", :allow-raw false}
-         (try (h/page [:h1 1])
+  (is (= {:content "hi", :allow-raw false}
+         (try (h/page [:div [:hiccup/raw-html "hi"]])
               (catch Exception e (ex-data e)))))
 
   (is (= "<!doctype html><h1>1</h1>"
