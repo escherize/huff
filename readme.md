@@ -4,7 +4,7 @@ Hiccup in pure Clojure
 
 ## Usage
 
-`io.github.escherize/huff {:mvn/version "0.0.10"}`
+`io.github.escherize/huff {:mvn/version "0.1.0"}`
 
 ``` clojure
 (require '[huff.core :as h])
