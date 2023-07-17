@@ -1,4 +1,5 @@
 # huff
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.escherize/huff.svg)](https://clojars.org/io.github.escherize/huff)
 
 Hiccup in pure Clojure
 
