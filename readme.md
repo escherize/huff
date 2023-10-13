@@ -176,6 +176,9 @@ This will be a little faster, and you should prefer it if your schema isnt dynam
 ;; build:
 (let [my-fxns (custom-fxns! my-schema)]
   (def my-html (fn my-html [hic] (h/html my-fxns))))
+  
+(my-html [:div>h1 [:my/child-counter-tag "one" "two" "three"]])
+;; => "<div><h1>I have 3 children.</h1></div>"
 ```
 
 More details in the [huff extension test](./test/huff/extension_test.clj).
