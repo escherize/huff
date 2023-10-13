@@ -7,13 +7,14 @@ Hiccup in pure Clojure
 `io.github.escherize/huff {:mvn/version "0.1.0"}`
 
 ``` clojure
-(require '[huff.core :as h])
+(require '[huff2.core :as h])
 ```
 
 ## Features
 
-- Style maps `[:. {:style {:font-size 30}}]` 🎨
+- *NEW*: [Extendable grammar](#extendable-grammer) + custom emitter functions!
 - Use [**functions** like **components**](#use-functons-as-components) 🪢
+- Style maps work `[:. {:style {:font-size 30}}]` 🎨
 - HTML-encoded by default ⛓️
 - Parse tags [in any order](#tag-parsing) 🔀
   - `:div#id.c` or `:div.c#id` both work (not the case for `hiccup/hiccup`)
@@ -135,6 +136,48 @@ Write a function that returns hiccup, and call it from the first position of a v
 
 ;;=> <div style="width:10px;"></div>
 ```
+
+## Extendable Grammer
+
+We now offer some super-deep customization of the hiccup grammer.
+
+With this power, you can write new tags that can parse (and validate) their inputs.
+
+### Example:
+
+Let's say you _really_ need a tag to count its children, and put that into the final html.
+
+1. Add your new tag to the hiccup schema:
+``` clojure
+(def my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag))
+```
+
+2. Write the emitter function for your tag:
+``` clojure
+(defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+  (append! "I have " (count values) " children."))
+```
+
+`append!` takes strings and will append them internally during html generation.
+
+3. Call (or build) huff2.core/html with your new schema:
+
+``` clojure
+;; call:
+(h/html (custom-fxns! my-schema)
+  [:div>h1 [:my/child-counter-tag "one" "two" "three"]])
+  ;; => "<div><h1>I have 3 children.</h1></div>"
+```
+
+This will be a little faster, and you should prefer it if your schema isnt dynamic.
+
+``` clojure
+;; build:
+(let [my-fxns (custom-fxns! my-schema)]
+  (def my-html (fn my-html [hic] (h/html my-fxns))))
+```
+
+More details in the [huff extension test](./test/huff/extension_test.clj).
 
 ## Prior Art
 

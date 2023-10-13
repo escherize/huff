@@ -1,7 +1,7 @@
 ;; annotated clone of hiccup2.test
 (ns huff.hiccup2-test
   (:require [clojure.test :refer [deftest are is testing]]
-            [huff.core :as h]
+            [huff2.core :as h]
             ;;[hiccup2.core :refer :all]
             ;;[hiccup.util :as util]
             ))
@@ -205,9 +205,7 @@
   (testing "literals"
     (is (= "&lt;&gt;"
            (h/html "<>")))
-    ;; invalid in huff
-    (is (= "&lt;&gt;"
-           (h/html ^String (str "<>"))))
+    (is (= "&lt;&gt;" (h/html ^String (str "<>"))))
     (is (= "1"
            (h/html 1)))
     (is (= "2"

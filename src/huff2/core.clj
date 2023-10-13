@@ -1,14 +1,14 @@
-(ns huff.core
+(ns huff2.core
   (:require
    [clojure.string :as str]
    [malli.core :as m]))
 
 (set! *warn-on-reflection* true)
 
-(def ^:private hiccup-schema
+(def hiccup-schema
   [:schema
    {:registry
-    {"hiccup" [:orn
+    {"hiccup" [:orn {::branches true}
                [:fragment-node  [:catn
                                  [:fragment-indicator [:= :<>]]
                                  [:children           [:* [:schema [:ref "hiccup"]]]]]]
@@ -38,8 +38,7 @@
   (defn valid? [h] (validator h)))
 
 (def explainer (m/explainer hiccup-schema))
-
-(def ^:private parser (m/parser hiccup-schema))
+(def parser (m/parser hiccup-schema))
 
 (defn stringify
   "Take a primative, and turn it into a string."
@@ -63,35 +62,35 @@
 (defn maybe-escape-html
   "1. Change special characters into HTML character entities when *escape?* otherwise don't change text.
    2. Append the maybe-transformed text value onto a stringbuilder"
-  [sb text]
+  [append! text]
   (let [text-str (stringify text)]
     (if-not *escape?*
-      (.append ^StringBuilder sb text-str)
+      (append! text-str)
       (let [some-replacement? (some char->replacement text-str)]
         (if some-replacement?
           (let [s (into [] text-str)]
-            (doseq [c s] (.append ^StringBuilder sb (char->replacement c c))))
-          (.append ^StringBuilder sb text-str))))))
+            (doseq [c s] (append! (char->replacement c c))))
+          (append! text-str))))))
 
-(defmulti ^:private emit (fn [_sb form opts] (first form)))
+(defmulti emit (fn [_append! form _opts] (first form)))
 
-(defmethod emit :primative [sb [_ x] _opts]
-  (maybe-escape-html sb x))
+(defmethod emit :primative [append! [_ x] _opts]
+  (maybe-escape-html append! x))
 
 (defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
-(defn- emit-style [sb s]
-  (.append ^StringBuilder sb "style=\"")
+(defn- emit-style [append! s]
+  (append! "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
-               [(.append ^StringBuilder sb (stringify k))
-                (.append ^StringBuilder sb ":")
-                (.append ^StringBuilder sb (stringify v))
-                (when (number? v) (.append ^StringBuilder sb "px"))
-                (.append ^StringBuilder sb ";")])
-    (string? s) (.append ^StringBuilder sb s)
+               [(append! (stringify k))
+                (append! ":")
+                (append! (stringify v))
+                (when (number? v) (append! "px"))
+                (append! ";")])
+    (string? s) (append! s)
     :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
-  (.append ^StringBuilder sb "\""))
+  (append! "\""))
 
 (defn step
   "Used to extract :.class.names.and#ids from keywords."
@@ -120,27 +119,27 @@
 (defn- tag->tag+id+classes [tag]
   (mapv (comp tag->tag+id+classes* keyword) (str/split (name tag) #">")))
 
-(defn- emit-attrs [sb attrs]
+(defn- emit-attrs [append! attrs]
   (doseq [[k value] attrs]
     (when-not
         (or (contains? #{"" nil false} value)
             (and (coll? value) (empty? value)))
-      (.append ^StringBuilder sb " ")
+      (append! " ")
       (cond
         (= :style k)
-        (emit-style sb value)
+        (emit-style append! value)
 
         (coll? value)
-        (do (.append ^StringBuilder sb (stringify k))
-            (.append ^StringBuilder sb "=\"")
-            (doseq [x (interpose " " value)] (maybe-escape-html sb x))
-            (.append ^StringBuilder sb "\""))
+        (do (append! (stringify k))
+            (append! "=\"")
+            (doseq [x (interpose " " value)] (maybe-escape-html append! x))
+            (append! "\""))
 
         :else
-        (do (.append ^StringBuilder sb (stringify k))
-            (.append ^StringBuilder sb "=\"")
-            (maybe-escape-html sb value)
-            (.append ^StringBuilder sb "\""))))))
+        (do (append! (stringify k))
+            (append! "=\"")
+            (maybe-escape-html append! value)
+            (append! "\""))))))
 
 ;; lifted from hiccup.compiler
 (def ^{:doc "A list of elements that must be rendered without a closing tag."
@@ -149,28 +148,28 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [sb [_ {:keys [tag children]}] opts]
+(defmethod emit :tag-node-no-attrs [append! [_ {:keys [tag children]}] opts]
   (let [tag-infos (tag->tag+id+classes tag)]
     ;; emit opening tags:
     (doseq [[tag tag-id tag-classes] tag-infos]
       (let [tag-classes' (remove str/blank? tag-classes)]
-        (.append ^StringBuilder sb "<")
-        (.append ^StringBuilder sb ^String (name tag))
+        (append! "<")
+        (append! ^String (name tag))
         (when (or tag-id (not-empty tag-classes'))
-          (emit-attrs sb {:id tag-id :class tag-classes'}))
+          (emit-attrs append! {:id tag-id :class tag-classes'}))
         (if (contains? void-tags (name tag))
-          (.append ^StringBuilder sb " />")
-          (.append ^StringBuilder sb ">"))))
+          (append! " />")
+          (append! ">"))))
     ;;children
-    (doseq [c children] (emit ^StringBuilder sb c opts))
+    (doseq [c children] (emit append! c opts))
     ;;closing tags
     (doseq [[tag] (reverse tag-infos)]
       (when-not (contains? void-tags (name tag))
-        (.append ^StringBuilder sb "</")
-        (.append ^StringBuilder sb (name tag))
-        (.append ^StringBuilder sb ">")))))
+        (append! "</")
+        (append! (name tag))
+        (append! ">")))))
 
-(defmethod emit :tag-node [sb [_ {:keys [tag attrs children]}] opts]
+(defmethod emit :tag-node [append! [_ {:keys [tag attrs children]}] opts]
   (let [tag-infos (tag->tag+id+classes tag)
         [_final-tag final-tag-id final-tag-classes] (last tag-infos)
         attrs (-> attrs
@@ -184,46 +183,54 @@
         ;; attrs go on the last tag-info:
         tag-infos' (update tag-infos (dec (count tag-infos)) (fn [l] (conj (vec l) attrs)))]
     (doseq [[tag tag-id tag-classes & [attrs]] tag-infos']
-      (.append ^StringBuilder sb "<")
-      (.append ^StringBuilder sb ^String (name tag))
+      (append! "<")
+      (append! ^String (name tag))
       (if attrs
-        (emit-attrs sb attrs)
-        (emit-attrs sb {:id tag-id :class (remove str/blank? tag-classes)}))
+        (emit-attrs append! attrs)
+        (emit-attrs append! {:id tag-id :class (remove str/blank? tag-classes)}))
       (if (contains? void-tags (name tag))
-        (.append ^StringBuilder sb " />")
-        (.append ^StringBuilder sb ">")))
-    (doseq [c children] (emit ^StringBuilder sb c opts))
+        (append! " />")
+        (append! ">")))
+    (doseq [c children] (emit append! c opts))
     (doseq [[tag] (reverse tag-infos')]
       (when-not (contains? void-tags (name tag))
-        (.append ^StringBuilder sb "</")
-        (.append ^StringBuilder sb ^String (name tag))
-        (.append ^StringBuilder sb ">")))))
+        (append! "</")
+        (append! ^String (name tag))
+        (append! ">")))))
 
-(defmethod emit :raw-node [sb [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
+(defmethod emit :raw-node [append! [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
   (when-not allow-raw
     (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?" {:content content :allow-raw allow-raw})))
-  (.append ^StringBuilder sb content))
+  (append! content))
 
-(defmethod emit :fragment-node [sb [_ {:keys [children]}] opts]
+(defmethod emit :fragment-node [append! [_ {:keys [children]}] opts]
   (doseq [c children]
-    (emit ^StringBuilder sb c opts)))
+    (emit append! c opts)))
 
-(defmethod emit :siblings-node [sb [_ {:keys [children]}] opts]
+(defmethod emit :siblings-node [append! [_ {:keys [children]}] opts]
   (doseq [c children]
-    (emit ^StringBuilder sb c opts)))
+    (emit append! c opts)))
 
-(defmethod emit :component-node [sb [_ {:keys [view-fxn children]}] opts]
-  (emit ^StringBuilder sb (parser (apply view-fxn children)) opts))
+(defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] opts]
+  (emit append! (parser (apply view-fxn children)) opts))
 
 (defn html
+  "Generates html from hiccupy data-structures.
+
+  What's hiccupy data look like? see: [[hiccup-schema]].
+
+  Can I extend this by adding new types of nodes? Yes: see: [[huff2.extension]]!"
   ([h] (html {} h))
-  ([{:keys [allow-raw] :or {allow-raw false} :as _opts} h]
-   (let [parsed (parser h)]
+  ([{:keys [allow-raw *explainer *parser] :or {allow-raw false
+                                               *explainer explainer
+                                               *parser parser} :as _opts} h]
+   (let [parsed (*parser h)]
      (if (= parsed :malli.core/invalid)
-       (let [{:keys [value]} (explainer h)]
-         (throw (ex-info "Invalid huff form passed to html. See `huff.core/hiccup-schema` for more info" {:value value})))
-       (let [sb (StringBuilder.)]
-         (emit ^StringBuilder sb parsed {:allow-raw allow-raw})
+       (let [{:keys [value]} (*explainer h)]
+         (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
+       (let [sb (StringBuilder.)
+             append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
+         (emit append! parsed {:allow-raw allow-raw})
          (str sb))))))
 
 (defn page
