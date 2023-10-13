@@ -13,7 +13,7 @@ Hiccup in pure Clojure
 
 ## Features
 
-- *NEW*: [Extendable grammar](#extendable-grammer) + custom emitter functions!
+- *NEW*: [Extendable grammar](#extendable-grammar) + custom emitter functions!
 - Use [**functions** like **components**](#use-functons-as-components) 🪢
 - Style maps work `[:. {:style {:font-size 30}}]` 🎨
 - HTML-encoded by default ⛓️
@@ -138,9 +138,9 @@ Write a function that returns hiccup, and call it from the first position of a v
 ;;=> <div style="width:10px;"></div>
 ```
 
-## Extendable Grammer
+## Extendable Grammar
 
-We now offer some super-deep customization of the hiccup grammer.
+We now offer some super-deep customization of the hiccup grammar.
 
 With this power, you can write new tags that can parse (and validate) their inputs.
 
