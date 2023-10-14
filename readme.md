@@ -14,6 +14,7 @@ Hiccup in pure Clojure
 ## Features
 
 - *NEW*: [Extendable grammar](#extendable-grammar) + custom emitter functions!
+- *NEW*: [raw-string](https://github.com/escherize/huff/issues/5) support
 - Use [**functions** like **components**](#use-functons-as-components) 🪢
 - Style maps work `[:. {:style {:font-size 30}}]` 🎨
 - HTML-encoded by default ⛓️
@@ -23,7 +24,7 @@ Hiccup in pure Clojure
 - Performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8) 🏎
 - Reagent style fragments to return multiple forms `[:<> [:li.a] [:li.b]]` 🙂
 - Hiccup style fragments to return multiple forms `(list [:li.a] [:li.b])` 🙃
-- Opt-in `:hiccup/raw-html` tag to partially bypass compilation 📦
+- `:hiccup/raw-html`: let users bypass html compilation, now with [raw-string](https://github.com/escherize/huff/issues/5)s. 📦
 - Tested against slightly modified hiccup 2 tests 🩺
 - Extreme shorthand syntax `[:. {:color :red}]` 💥
 
@@ -101,16 +102,25 @@ Nest and combine them with lists to better convey intent to expand:
 
 ### Raw HTML tag:
 
-This is nice if you want to e.g. produce markdown in the middle of your hiccup.  note: This is disabled by default and must be manually enabled in the call to `html` or `page`,
+This is nice if you want to e.g. render markdown in the middle of your hiccup. Note: We disable this by default and it must be manually enabled in the call to `html` or `page`,
 
 ``` clojure
 
 (h/html [:hiccup/raw-html "<div>raw</div>"])
-;; =Throws=> ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?""
+;; =Throws=> :hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?
 
 (h/html {:allow-raw true} [:hiccup/raw-html "<div>raw</div>"])
-;;=> "<div>raw</div>"
+;;=> <div>raw</div>
 ```
+
+Another nice-to-have is to disallow raw html in un-trusted data getting passed into to the compiler, but being able to do that as a dev.
+
+``` clojure
+(h/html [:div [:hiccup/raw-html (h/raw-string "<!-- oops.")]])
+;; => <div><!-- oops.</div>
+```
+
+[More Info]
 
 ### Use functons as components
 
@@ -167,7 +177,7 @@ Let's say you _really_ need a tag to count its children, and put that into the f
 ;; call:
 (h/html (custom-fxns! my-schema)
   [:div>h1 [:my/child-counter-tag "one" "two" "three"]])
-  ;; => "<div><h1>I have 3 children.</h1></div>"
+  ;; => <div><h1>I have 3 children.</h1></div>
 ```
 
 This will be a little faster, and you should prefer it if your schema isnt dynamic.
@@ -178,7 +188,7 @@ This will be a little faster, and you should prefer it if your schema isnt dynam
   (def my-html (fn my-html [hic] (h/html my-fxns))))
   
 (my-html [:div>h1 [:my/child-counter-tag "one" "two" "three"]])
-;; => "<div><h1>I have 3 children.</h1></div>"
+;; => <div><h1>I have 3 children.</h1></div>
 ```
 
 More details in the [huff extension test](./test/huff/extension_test.clj).
