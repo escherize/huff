@@ -1,11 +1,10 @@
 # huff
-[![Clojars Project](https://img.shields.io/clojars/v/io.github.escherize/huff.svg)](https://clojars.org/io.github.escherize/huff)
 
 Hiccup in pure Clojure
 
 ## Usage
 
-`io.github.escherize/huff {:mvn/version "0.1.3"}`
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.escherize/huff.svg)](https://clojars.org/io.github.escherize/huff)
 
 ``` clojure
 (require '[huff2.core :as h])
