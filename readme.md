@@ -171,7 +171,7 @@ Let's say you _really_ need a tag to count its children, and put that into the f
 
 `append!` takes strings and will append them internally during html generation.
 
-3. Call (or build) huff2.core/html with your new schema:
+3. Call huff2.core/html with your new schema:
 
 ``` clojure
 ;; call:
