@@ -17,7 +17,7 @@
   (is (=  "<div class=\"parent\"><div class=\"me-go-onto-child child\" id=\"me-too\">y</div></div>"
           (h/html [:.parent>div.child {:class "me-go-onto-child" :id "me-too"} "y"])))
 
-  (is "<div></div>" (h/html [:div]))
+  (is (= "<div></div>" (h/html [:div])))
 
   (is (= "<div>x</div>"
          (h/html [:div "x"])))
@@ -128,3 +128,24 @@
 
   (is (= "<!doctype html><h1>1</h1>"
          (h/page {:allow-raw true} [:h1 1]))))
+
+(deftest secure-raw-html
+  (is (= "<!doctype html><div>select * from students where name = 'Bob Robert'); DROP TABLE Students;--</div>"
+         (h/page [:div
+                  "select * from students where name = 'Bob "
+                  [:hiccup/raw-html (h/raw-string "Robert'); DROP TABLE Students;--")]]))))
+
+(deftest you-can-invalidate-your-own-html
+  (is (= "<!doctype html><div>My Page<ul><li><!-- hehe...</li><li>what happened...</li></ul></div>"
+         (h/page [:div "My Page"
+                  [:ul
+                   [:li [:hiccup/raw-html (h/raw-string "<!-- hehe...")]]
+                   [:li "what happened..."]]]))))
+
+(deftest users-cannot-invalidate-your-own-html
+  (is (= {:content "<!-- hehe...", :allow-raw false}
+         (try (h/page [:div "My Page"
+                       [:ul
+                        [:li [:hiccup/raw-html "<!-- hehe..."]]
+                        [:li "what happened..."]]])
+              (catch Exception e (ex-data e))))))

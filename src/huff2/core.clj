@@ -5,6 +5,27 @@
 
 (set! *warn-on-reflection* true)
 
+;; Lifted directly from hiccup.util
+(deftype RawString [^String s]
+  Object
+  (^String toString [_this] s)
+  (^boolean equals [_this other]
+    (and (instance? RawString other)
+         (= s  (.toString other)))))
+
+(defn raw-string
+  "Converts one or more strings into an object that will not be escaped when
+  used with the [[huff2.core/html]] macro."
+  {:arglists '([& xs])}
+  ([] (RawString. ""))
+  ([x] (RawString. (str x)))
+  ([x & xs] (RawString. (apply str x xs))))
+
+(defn raw-string?
+  "Returns true if x is a RawString created by [[raw-string]]."
+  [x]
+  (instance? RawString x))
+
 (def hiccup-schema
   [:schema
    {:registry
@@ -23,7 +44,9 @@
                ;; Always passed through untouched
                [:raw-node       [:catn
                                  [:raw     [:= :hiccup/raw-html]]
-                                 [:content :string]]]
+                                 [:content [:orn
+                                            [:raw-string [:fn raw-string?]]
+                                            [:string :string]]]]]
                [:component-node [:catn
                                  [:view-fxn [:and
                                              [:function [:=> [:cat :any]
@@ -198,10 +221,18 @@
         (append! ^String (name tag))
         (append! ">")))))
 
-(defmethod emit :raw-node [append! [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
-  (when-not allow-raw
-    (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?" {:content content :allow-raw allow-raw})))
-  (append! content))
+(defmethod emit :raw-node [append! [_ {[type value] :content :as input}] {:keys [allow-raw] :as opts}]
+  ;; This either gets a string, in which case you need the allow-raw option set,
+  ;; or a "raw-string" which is a wrapper for a string that cannot be
+  ;; constructed outside of your program.
+  (case type
+    :string
+    (if allow-raw
+      (append! value)
+      (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
+                      {:content value :allow-raw allow-raw})))
+    :raw-string
+    (append! (str value))))
 
 (defmethod emit :fragment-node [append! [_ {:keys [children]}] opts]
   (doseq [c children]
