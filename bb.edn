@@ -8,4 +8,33 @@
   deploy {:doc "Deploy to Clojars"
           :task (do
                   (println "Deploying to clojars")
-                  (clojure "-T:build deploy"))}}}
+                  (clojure "-T:build deploy"))}
+
+  -bb-tests {:requires ([clojure.string :as str]
+                        [clojure.test :as t]
+                        [babashka.classpath :as cp]
+                        [babashka.fs :as fs])
+             :task (do
+                     (cp/add-classpath "src:test")
+                     (let [test-nss (for [test-file (fs/glob "test" "**.clj")
+                                          :let [test-ns (-> test-file
+                                                            str
+                                                            (->> (re-matches (re-pattern "test/(.*).clj")))
+                                                            second
+                                                            (str/replace "_" "-" )
+                                                            (str/replace "/" ".")
+                                                            symbol)]]
+                                      (do (require test-ns) test-ns))
+                           results (apply t/run-tests test-nss)]
+                       (when (pos? (+ (:fail results) (:error results)))
+                         (System/exit 1))))}
+  tests {:doc "Run tests in bb and Clj."
+         :task (do
+                 (println "+---------------------------+")
+                 (println "| Running tests in Babashka |")
+                 (println "+---------------------------+")
+                 (run '-bb-tests)
+                 (println "+--------------------------+")
+                 (println "| Running tests in Clojure |")
+                 (println "+--------------------------+")
+                 (clojure "-M:test"))}}}

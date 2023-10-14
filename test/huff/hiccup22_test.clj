@@ -1,5 +1,5 @@
 ;; annotated clone of hiccup2.test
-(ns huff.hiccup2-test
+(ns huff.hiccup22-test
   (:require [clojure.test :refer [deftest are is testing]]
             [huff2.core :as h]
             ;;[hiccup2.core :refer :all]
