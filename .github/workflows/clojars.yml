@@ -5,9 +5,8 @@ on:
     branches: [ master ]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout
@@ -27,6 +26,25 @@ jobs:
 
       - name: Run tests
         run: bb tests
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Prepare java
+        uses: actions/setup-java@v1
+        with: { java-version: 1.11 }
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@10.0
+        with:
+          cli: latest
+          bb: latest
     
       - name: Build jar
         run: bb uber
