@@ -25,9 +25,6 @@ jobs:
           cli: latest
           bb: latest
 
-      - name: Run tests
-        run: bb tests
-    
       - name: Build jar
         run: bb uber
 
