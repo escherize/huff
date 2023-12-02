@@ -10,22 +10,29 @@ Hiccup in pure Clojure
 (require '[huff2.core :as h])
 ```
 
+## Rationale
+
+When it comes to hiccup libraries, there's a venn-diagram "has ergonomic and modern affordances" and "works on babashka". So [huff](https://github.com/escherize/huff) is my way of saying why not both?
+
+- [Weavejester's hiccup library](https://github.com/weavejester/hiccup) runs on babashka, but is missing some of the newer features hiccup afficianados have come to demand.
+ 
+- [Lambda Island's hiccup](https://github.com/lambdaisland/hiccup) also provides a modern api, but overall I'd still call it a subset of huff's features.
+ 
 ## Features
 
-- *NEW*: [Extendable grammar](#extendable-grammar) + custom emitter functions!
-- *NEW*: [raw-string](https://github.com/escherize/huff/issues/5) support
-- Use [**functions** like **components**](#use-functons-as-components) 🪢
-- Style maps work `[:. {:style {:font-size 30}}]` 🎨
-- HTML-encoded by default ⛓️
-- Parse tags [in any order](#tag-parsing) 🔀
-  - `:div#id.c` or `:div.c#id` both work (not the case for `hiccup/hiccup`)
-- Runs on [babashka](https://github.com/babashka/babashka) (unlike `lambdaisland/hiccup`) 👵
-- Performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8) 🏎
-- Reagent style fragments to return multiple forms `[:<> [:li.a] [:li.b]]` 🙂
-- Hiccup style fragments to return multiple forms `(list [:li.a] [:li.b])` 🙃
-- `:hiccup/raw-html`: let users bypass html compilation, now with [raw-string](https://github.com/escherize/huff/issues/5)s. 📦
-- Tested against slightly modified hiccup 2 tests 🩺
-- Extreme shorthand syntax `[:. {:color :red}]` 💥
+- 🏭 Use [**functions** as **components**](#use-functons-as-components) 
+- 🎨 Style maps work as you'd expect `[:div {:style {:font-size 30}}]`
+- 🔀 Include classes and ids tags [in any order](#tag-parsing)
+  - `:div.a#id.b` or `:div.a.c#id` or `:#id.a.c` all work!
+- 🔒️ HTML-encoded by default
+- 👵 Runs on [babashka](https://github.com/babashka/babashka) (unlike `lambdaisland/hiccup`) 
+- 🏎 Performance: 22-48% faster than hiccup/hiccup for runtime-generated HTML [without pre-compilation](https://github.com/escherize/huff/issues/8) 
+- 🙂 Hiccup-style fragments to return multiple forms `(list [:li.a] [:li.b])` 
+- 🙃 Reagent-style fragments to return multiple forms `[:<> [:li.a] [:li.b]]` 
+- 🤐 Extreme shorthand syntax `[:. {:color :red}]` `<div color=red></div>` 
+- 🦺 Tested against slightly modified hiccup 2 tests 
+- *NEW*: 🪗 [Extendable grammar](#extendable-grammar) + custom emitter functions!
+- *NEW*: 📦 [raw-string](https://github.com/escherize/huff/issues/5) support
 
 ### Tag Parsing
 
@@ -149,7 +156,7 @@ Write a function that returns hiccup, and call it from the first position of a v
 
 ## Extendable Grammar
 
-We now offer some super-deep customization of the hiccup grammar.
+We now offer customization of the hiccup grammar.
 
 With this power, you can write new tags that can parse (and validate) their inputs.
 
@@ -190,7 +197,7 @@ This will be a little faster, and you should prefer it if your schema isnt dynam
 ;; => <div><h1>I have 3 children.</h1></div>
 ```
 
-More details in the [huff extension test](./test/huff/extension_test.clj).
+More details in the [huff extension tests](./test/huff/extension_test.clj).
 
 ## Prior Art
 
