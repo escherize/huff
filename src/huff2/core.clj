@@ -1,6 +1,7 @@
 (ns huff2.core
   (:refer-clojure :exclude [rem])
   (:require
+   [clojure.core :exclude [rem]]
    [clojure.string :as str]
    [malli.core :as m]))
 
