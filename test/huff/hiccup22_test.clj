@@ -69,187 +69,187 @@
 
 (deftest tag-names
   (testing "basic tags"
-    (is (= "<div></div>" (str (h/html [:div])))))
+    (is (= "<div></div>" (h/html [:div]))))
   (testing "tag syntax sugar"
-    (is (= "<div id=\"foo\"></div>" (str (h/html [:div#foo]))))
-    (is (= "<div class=\"foo\"></div>" (str (h/html [:div.foo]))))
-    (is (= "<div class=\"foo\">barbaz</div>" (str (h/html [:div.foo (str "bar" "baz")]))))
-    (is (= "<div class=\"a b\"></div>" (str (h/html [:div.a.b]))))
-    (is (= "<div class=\"a b c\"></div>" (str (h/html [:div.a.b.c]))))
-    (is (= "<div id=\"foo\" class=\"bar baz\"></div>" (str (h/html [:div#foo.bar.baz]))))))
+    (is (= "<div id=\"foo\"></div>" (h/html [:div#foo])))
+    (is (= "<div class=\"foo\"></div>" (h/html [:div.foo])))
+    (is (= "<div class=\"foo\">barbaz</div>" (h/html [:div.foo (str "bar" "baz")])))
+    (is (= "<div class=\"a b\"></div>" (h/html [:div.a.b])))
+    (is (= "<div class=\"a b c\"></div>" (h/html [:div.a.b.c])))
+    (is (= "<div id=\"foo\" class=\"bar baz\"></div>" (h/html [:div#foo.bar.baz])))))
 
 (deftest tag-contents
   (testing "empty tags"
-    (is (= "<div></div>" (str (h/html [:div]))))
-    (is (= "<h1></h1>" (str (h/html [:h1]))))
-    (is (= "<script></script>" (str (h/html [:script]))))
-    (is (= "<text></text>" (str (h/html [:text]))))
-    (is (= "<a></a>" (str (h/html [:a]))))
-    (is (= "<iframe></iframe>" (str (h/html [:iframe]))))
-    (is (= "<title></title>" (str (h/html [:title]))))
-    (is (= "<section></section>" (str (h/html [:section]))))
-    (is (= "<select></select>" (str (h/html [:select]))))
-    (is (= "<object></object>" (str (h/html [:object]))))
-    (is (= "<video></video>" (str (h/html [:video])))))
+    (is (= "<div></div>" (h/html [:div])))
+    (is (= "<h1></h1>" (h/html [:h1])))
+    (is (= "<script></script>" (h/html [:script])))
+    (is (= "<text></text>" (h/html [:text])))
+    (is (= "<a></a>" (h/html [:a])))
+    (is (= "<iframe></iframe>" (h/html [:iframe])))
+    (is (= "<title></title>" (h/html [:title])))
+    (is (= "<section></section>" (h/html [:section])))
+    (is (= "<select></select>" (h/html [:select])))
+    (is (= "<object></object>" (h/html [:object])))
+    (is (= "<video></video>" (h/html [:video]))))
   (testing "void tags"
-    (is (= (str (h/html [:br])) "<br />"))
-    (is (= (str (h/html [:link])) "<link />"))
-    (is (= (str (h/html [:colgroup {:span 2}])) "<colgroup span=\"2\"></colgroup>"))
-    (is (= (str (h/html [:colgroup [:col]])) "<colgroup><col /></colgroup>")))
+    (is (= (h/html [:br]) "<br />"))
+    (is (= (h/html [:link]) "<link />"))
+    (is (= (h/html [:colgroup {:span 2}]) "<colgroup span=\"2\"></colgroup>"))
+    (is (= (h/html [:colgroup [:col]]) "<colgroup><col /></colgroup>")))
   (testing "tags containing text"
-    (is (= (str (h/html [:text "Lorem Ipsum"])) "<text>Lorem Ipsum</text>")))
+    (is (= (h/html [:text "Lorem Ipsum"]) "<text>Lorem Ipsum</text>")))
   (testing "contents are concatenated"
-    (is (= (str (h/html [:body "foo" "bar"])) "<body>foobar</body>"))
-    (is (= (str (h/html [:body [:p] [:br]])) "<body><p></p><br /></body>")))
+    (is (= (h/html [:body "foo" "bar"]) "<body>foobar</body>"))
+    (is (= (h/html [:body [:p] [:br]]) "<body><p></p><br /></body>")))
   (testing "seqs are expanded"
-    (is (= (str (h/html [:body (list "foo" "bar")])) "<body>foobar</body>"))
-    (is (= (str (h/html (list [:p "a"] [:p "b"]))) "<p>a</p><p>b</p>")))
+    (is (= (h/html [:body (list "foo" "bar")]) "<body>foobar</body>"))
+    (is (= (h/html (list [:p "a"] [:p "b"])) "<p>a</p><p>b</p>")))
 
   (testing "vecs don't expand - error if vec doesn't have tag name"
     ;; (is (false? (h/valid? [[:p "a"] [:p "b"]])))
     (is (= "<p>a</p><p>b</p>"
            ;; lists of hiccup are the same as fragments.
-           (str (h/html (list [:p "a"] [:p "b"])))))
+           (h/html (list [:p "a"] [:p "b"]))))
     (is (= "<p>a</p><p>b</p>"
            ;; lists of hiccup are the same as fragments.
-           (str (h/html [:<> [:p "a"] [:p "b"]])))))
+           (h/html [:<> [:p "a"] [:p "b"]]))))
   (testing "tags can contain tags"
-    (is (= (str (h/html [:div [:p]])) "<div><p></p></div>"))
-    (is (= (str (h/html [:div [:b]])) "<div><b></b></div>"))
-    (is (= (str (h/html [:p [:span [:a "foo"]]]))
+    (is (= (h/html [:div [:p]]) "<div><p></p></div>"))
+    (is (= (h/html [:div [:b]]) "<div><b></b></div>"))
+    (is (= (h/html [:p [:span [:a "foo"]]])
            "<p><span><a>foo</a></span></p>"))))
 
 (deftest tag-attributes
   (testing "tag with blank attribute map"
-    (is (= (str (h/html [:xml {}])) "<xml></xml>")))
+    (is (= (h/html [:xml {}]) "<xml></xml>")))
   (testing "tag with populated attribute map"
-    (is (= (str (h/html [:xml {:a "1", :b "2"}])) "<xml a=\"1\" b=\"2\"></xml>"))
-    (is (= (str (h/html [:img {"id" "foo"}])) "<img id=\"foo\" />"))
-    (is (= (str (h/html [:img {'id "foo"}])) "<img id=\"foo\" />"))
-    ;; (is (= (str (h/html [:xml {:a "1", 'b "2", "c" "3"}]))
+    (is (= (h/html [:xml {:a "1", :b "2"}]) "<xml a=\"1\" b=\"2\"></xml>"))
+    (is (= (h/html [:img {"id" "foo"}]) "<img id=\"foo\" />"))
+    (is (= (h/html [:img {'id "foo"}]) "<img id=\"foo\" />"))
+    ;; (is (= (h/html [:xml {:a "1", 'b "2", "c" "3"}])
     ;;        "<xml a=\"1\" b=\"2\" c=\"3\"></xml>"))
     )
   (testing "attribute values are escaped"
-    (is (= "<div id=\"&quot;\"></div>" (str (h/html [:div {:id "\""}])))))
+    (is (= "<div id=\"&quot;\"></div>" (h/html [:div {:id "\""}]))))
   (testing "boolean attributes"
     (is (= "<input type=\"checkbox\" checked=\"true\" />"
-           (str (h/html [:input {:type "checkbox" :checked true}]))))
+           (h/html [:input {:type "checkbox" :checked true}])))
     (is (= "<input type=\"checkbox\" />"
-           (str (h/html [:input {:type "checkbox" :checked false}])))))
+           (h/html [:input {:type "checkbox" :checked false}]))))
   (testing "nil attributes"
     (is (= "<span>foo</span>"
-           (str (h/html [:span {:class nil} "foo"])))))
+           (h/html [:span {:class nil} "foo"]))))
   (testing "vector attributes"
     (is (= "<span class=\"bar baz\">foo</span>"
-           (str (h/html [:span {:class ["bar" "baz"]} "foo"]))))
+           (h/html [:span {:class ["bar" "baz"]} "foo"])))
     (is (= "<span class=\"baz\">foo</span>"
-           (str (h/html [:span {:class ["baz"]} "foo"]))))
+           (h/html [:span {:class ["baz"]} "foo"])))
     (is (= "<span class=\"baz bar\">foo</span>"
-           (str (h/html [:span {:class "baz bar"} "foo"])))))
+           (h/html [:span {:class "baz bar"} "foo"]))))
   (testing "map attributes"
     (is (= "<span style=\"background-color:blue;color:red;opacity:100%;\">foo</span>"
-           (str (h/html [:span {:style {:background-color :blue :color "red" :opacity "100%"}} "foo"])))))
+           (h/html [:span {:style {:background-color :blue :color "red" :opacity "100%"}} "foo"]))))
   (testing "resolving conflicts between attributes in the map and tag"
-    (is (= (str (h/html [:div.foo {:class "bar"} "baz"]))
+    (is (= (h/html [:div.foo {:class "bar"} "baz"])
            "<div class=\"bar foo\">baz</div>"))
-    (is (= (str (h/html [:div.foo {:class ["bar"]} "baz"]))
+    (is (= (h/html [:div.foo {:class ["bar"]} "baz"])
            "<div class=\"bar foo\">baz</div>"))
-    (is (= (str (h/html [:div#bar.foo {:id "baq"} "baz"]))
+    (is (= (h/html [:div#bar.foo {:id "baq"} "baz"])
            "<div id=\"baq\" class=\"foo\">baz</div>"))))
 
 (deftest compiled-tags
   (testing "tag content can be vars"
-    (is (= (let [x "foo"] (str (h/html [:span x]))) "<span>foo</span>")))
+    (is (= (let [x "foo"] (h/html [:span x])) "<span>foo</span>")))
   (testing "tag content can be forms"
-    (is (= (str (h/html [:span (str (+ 1 1))])) "<span>2</span>"))
-    (is (= (str (h/html [:span ({:foo "bar"} :foo)])) "<span>bar</span>")))
+    (is (= (h/html [:span (str (+ 1 1))]) "<span>2</span>"))
+    (is (= (h/html [:span ({:foo "bar"} :foo)]) "<span>bar</span>")))
   (testing "attributes can contain vars"
     (let [x "foo"]
-      (is (= (str (h/html [:xml {:x x}])) "<xml x=\"foo\"></xml>"))
-      (is (= (str (h/html [:xml {x "x"}])) "<xml foo=\"x\"></xml>"))
-      (is (= (str (h/html [:xml {:x x} "bar"])) "<xml x=\"foo\">bar</xml>"))))
+      (is (= (h/html [:xml {:x x}]) "<xml x=\"foo\"></xml>"))
+      (is (= (h/html [:xml {x "x"}]) "<xml foo=\"x\"></xml>"))
+      (is (= (h/html [:xml {:x x} "bar"]) "<xml x=\"foo\">bar</xml>"))))
   (testing "attributes are evaluated"
-    (is (= (str (h/html [:img {:src (str "/foo" "/bar")}]))
+    (is (= (h/html [:img {:src (str "/foo" "/bar")}])
            "<img src=\"/foo/bar\" />"))
-    (is (= (str (h/html [:div {:id (str "a" "b")} (str "foo")]))
+    (is (= (h/html [:div {:id (str "a" "b")} (str "foo")])
            "<div id=\"ab\">foo</div>")))
   (testing "type hints"
     (let [string "x"]
-      (is (= (str (h/html [:span ^String string])) "<span>x</span>"))))
+      (is (= (h/html [:span ^String string]) "<span>x</span>"))))
   (testing "optimized forms"
-    (is (= (str (h/html [:ul (for [n (range 3)]
-                               [:li n])]))
+    (is (= (h/html [:ul (for [n (range 3)]
+                        [:li n])])
            "<ul><li>0</li><li>1</li><li>2</li></ul>"))
-    (is (= (str (h/html [:div (if true
-                                [:span "foo"]
-                                [:span "bar"])]))
+    (is (= (h/html [:div (if true
+                         [:span "foo"]
+                         [:span "bar"])])
            "<div><span>foo</span></div>")))
   (testing "values are evaluated only once"
     (let [times-called (atom 0)
           foo #(swap! times-called inc)]
-      (str (h/html [:div (foo)]))
+      (h/html [:div (foo)])
       (is (= @times-called 1)))))
 
 (deftest render-modes
   (testing "closed tag"
-    (is (= "<p></p><br />" (str (h/html (list [:p] [:br])))))
-    (is (= "<p></p><br />" (str (h/html [:<> [:p] [:br]])))))
+    (is (= "<p></p><br />" (h/html (list [:p] [:br]))))
+    (is (= "<p></p><br />" (h/html [:<> [:p] [:br]]))))
   (testing "laziness and binding scope"
-    (is (= "<html><link /><link /></html>" (str (h/html [:html [:link] (list [:link])])))))
+    (is (= "<html><link /><link /></html>" (h/html [:html [:link] (list [:link])]))))
   (testing "function binding scope"
     (let [f #(vector :p "<>" [:br])]
-      (is (= "<p>&lt;&gt;<br /></p>" (str (h/html [f]))))
-      (is (= "<p>&lt;&gt;<br /></p>" (str (h/html (f))))))))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html [f])))
+      (is (= "<p>&lt;&gt;<br /></p>" (h/html (f)))))))
 
 (deftest auto-escaping
   (testing "literals"
     (is (= "&lt;&gt;"
-           (str (h/html "<>"))))
-    (is (= "&lt;&gt;" (str (h/html ^String (str "<>")))))
+           (h/html "<>")))
+    (is (= "&lt;&gt;" (h/html ^String (str "<>"))))
     (is (= "1"
-           (str (h/html 1))))
+           (h/html 1)))
     (is (= "2"
-           (str (h/html ^Number (+ 1 1))))))
+           (h/html ^Number (+ 1 1)))))
   (testing "non-literals"
-    (is (= (str (h/html (list [:p "<foo>"] [:p "<bar>"])))
+    (is (= (h/html (list [:p "<foo>"] [:p "<bar>"]))
            "<p>&lt;foo&gt;</p><p>&lt;bar&gt;</p>"))
-    (is (= (str (h/html ((constantly "<foo>")))) "&lt;foo&gt;"))
-    (is (= (let [x "<foo>"] (str (h/html x))) "&lt;foo&gt;")))
+    (is (= (h/html ((constantly "<foo>"))) "&lt;foo&gt;"))
+    (is (= (let [x "<foo>"] (h/html x)) "&lt;foo&gt;")))
   (testing "elements"
-    (is (= "<p>&lt;&gt;</p>" (str (h/html [:p "<>"]))))
+    (is (= "<p>&lt;&gt;</p>" (h/html [:p "<>"])))
     (is (= "<p class=\"&lt;&quot;&gt;\"></p>"
-           (str (h/html [:p {:class "<\">"}]))))
+           (h/html [:p {:class "<\">"}])))
     (is (= "<p class=\"&lt;&quot;&gt;\"></p>"
-           (str (h/html [:p {:class ["<\">"]}]))))
+           (h/html [:p {:class ["<\">"]}])))
     (is (= "<ul><li>&lt;foo&gt;</li></ul>"
-           (str (h/html [:ul [:li "<foo>"]])))))
+           (h/html [:ul [:li "<foo>"]]))))
   (testing "raw strings"
     (is (thrown?
           Exception
           #":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
-          (str (h/html [:hiccup/raw-html "<foo>"]))))
-    (is (= "<foo>" (str (h/html (h/raw "<foo>")))))
-    (is (= "<p><foo></p>" (str (h/html [:p (h/raw "<foo>")]))))
-    (is (= "<ul><li>&lt;&gt;</li></ul>" (str (h/html [:ul [:li "<>"]]))))))
+          (h/html [:hiccup/raw-html "<foo>"])))
+    (is (= "<foo>" (h/html {:allow-raw true} [:hiccup/raw-html "<foo>"])))
+    (is (= "<p><foo></p>" (h/html {:allow-raw true} [:p [:hiccup/raw-html "<foo>"]])))
+    (is (= "<ul><li>&lt;&gt;</li></ul>" (h/html [:ul [:li "<>"]])))))
 
 ;; in huff do not call the compiler multiple times on the same value,
 ;; instead use the `:hiccup/raw-html` tag
 
 (deftest html-escaping
   (testing "precompilation"
-    (is (= (str (h/html [:p "<>"])) "<p>&lt;&gt;</p>"))
+    (is (= (h/html [:p "<>"]) "<p>&lt;&gt;</p>"))
     (is (= (binding [h/*escape?* false]
-             (str (h/html [:p "<>"]))) "<p><></p>")))
+             (h/html [:p "<>"])) "<p><></p>")))
   (testing "dynamic generation"
     (let [x [:p "<>"]]
-      (is (= (str (h/html x)) "<p>&lt;&gt;</p>"))))
+      (is (= (h/html x) "<p>&lt;&gt;</p>"))))
   (testing "attributes"
-    (is (= (str (h/html [:p {:class "<>"}])) "<p class=\"&lt;&gt;\"></p>"))
+    (is (= (h/html [:p {:class "<>"}]) "<p class=\"&lt;&gt;\"></p>"))
     (is (= (binding [h/*escape?* false]
-             (str (h/html [:p {:class "<>"}])))
+             (h/html [:p {:class "<>"}]))
            "<p class=\"<>\"></p>")))
   (testing "raw strings"
-    (is (= (str (h/html [:p (h/raw "<>")])) "<p><></p>"))
+    (is (= (h/html {:allow-raw true} [:p [:hiccup/raw-html "<>"]]) "<p><></p>"))
     (is (= (binding [h/*escape?* false]
-             (str (h/html [:p (h/raw "<>")])))
+             (h/html {:allow-raw true} [:p [:hiccup/raw-html "<>"]]))
            "<p><></p>"))))

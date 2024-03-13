@@ -1,48 +1,30 @@
 (ns huff2.core
   (:require
-   [clojure.core :exclude [rem]]
    [clojure.string :as str]
    [malli.core :as m]))
 
 (set! *warn-on-reflection* true)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; convenience functions
-
-(defn px "Convenience function to append 'px'" [x] (str x "px"))
-(defn em "Convenience function to append 'em'" [x] (str x "em"))
-(defn rem "Convenience function to append 'rem'" [x] (str x "rem"))
-(defn pct "Convenience function to append '%'" [x] (str x "%"))
-(defn vw "Convenience function to append 'vw'" [x] (str x "vw"))
-(defn vh "Convenience function to append 'vh'" [x] (str x "vh"))
-(defn vmin "Convenience function to append 'vmin'" [x] (str x "vmin"))
-(defn vmax "Convenience function to append 'vmax'" [x] (str x "vmax"))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; raw strings
-
-;; inspired by hiccup.util
+;; Lifted directly from hiccup.util
 (deftype RawString [^String s]
   Object
   (^String toString [_this] s)
   (^boolean equals [_this other]
-   (and (instance? RawString other)
-        (= s (.toString other)))))
+    (and (instance? RawString other)
+         (= s  (.toString other)))))
 
 (defn raw-string
   "Converts one or more strings into an object that will not be escaped when
-  used with the [[huff2.core/html]] function."
-  {:arglists '([& strs])}
+  used with the [[huff2.core/html]] macro."
+  {:arglists '([& xs])}
   ([] (RawString. ""))
-  ([s] (RawString. (str s)))
-  ([s & strs] (RawString. (apply str s strs))))
-
-(def ^{:arglists '([& strs])} raw raw-string)
+  ([x] (RawString. (str x)))
+  ([x & xs] (RawString. (apply str x xs))))
 
 (defn raw-string?
   "Returns true if x is a RawString created by [[raw-string]]."
   [x]
   (instance? RawString x))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Schema
 
 (def hiccup-schema
   [:schema
@@ -72,16 +54,12 @@
                                              [:not keyword?]
                                              [:not vector?]]]
                                  [:children [:* :any]]]]
-               [:primative [:or
-                            :string
-                            number?
-                            :boolean
-                            :nil
-                            [:fn raw-string?]]]]}}
+               [:primative [:or :string number? :boolean :nil]]]}}
    "hiccup"])
 
 (let [validator (m/validator hiccup-schema)]
   (defn valid? [h] (validator h)))
+
 (def explainer (m/explainer hiccup-schema))
 (def parser (m/parser hiccup-schema))
 
@@ -93,19 +71,23 @@
     (simple-keyword? text) (name text)
     (keyword? text) [(namespace text) "/" (name text)]
     (ratio? text) (str (double text))
-    (raw-string? text) (str text)
     :else (str text)))
 
 (def ^:dynamic *escape?* true)
 
-(def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;", \\ "&#39;"})
+(def char->replacement
+  {\& "&amp;"
+   \< "&lt;"
+   \> "&gt;"
+   \" "&quot;"
+   \\ "&#39;"})
 
 (defn maybe-escape-html
-  "1. Change special characters into HTML character entities when *escape?*
-   2. call `append!` on the maybe-transformed text value"
+  "1. Change special characters into HTML character entities when *escape?* otherwise don't change text.
+   2. Append the maybe-transformed text value onto a stringbuilder"
   [append! text]
   (let [text-str (stringify text)]
-    (if (or (not *escape?*) (raw-string? text))
+    (if-not *escape?*
       (append! text-str)
       (let [some-replacement? (some char->replacement text-str)]
         (if some-replacement?
@@ -124,7 +106,11 @@
   (append! "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
-               (append! (stringify k) ":" (stringify v) ";"))
+               [(append! (stringify k))
+                (append! ":")
+                (append! (stringify v))
+                (when (number? v) (append! "px"))
+                (append! ";")])
     (string? s) (append! s)
     :else (throw (ex-info "style attributes need to be a string or a map." {:s s})))
   (append! "\""))
@@ -259,8 +245,6 @@
 (defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] opts]
   (emit append! (parser (apply view-fxn children)) opts))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
-
 (defn html
   "Generates html from hiccupy data-structures.
 
@@ -278,7 +262,7 @@
        (let [sb (StringBuilder.)
              append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
          (emit append! parsed {:allow-raw allow-raw})
-         (raw-string (str sb)))))))
+         (str sb))))))
 
 (defn page
   ([h] (page {} h))

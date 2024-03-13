@@ -12,7 +12,7 @@
                        (append! "I have " (count values) " children."))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
     (is (= "<div><h1>I have 3 children.</h1></div>"
-           (str (my-html [:div>h1 [:my/child-counter-tag "one" "two" "three"]]))))))
+           (my-html [:div>h1 [:my/child-counter-tag "one" "two" "three"]])))))
 
 (deftest catn-named-values-in-schema
   (let [my-schema (h2e/add-schema-branch
@@ -31,7 +31,7 @@
         my-html (partial h/html custom-fxns)]
     ;; it knows what is not allowed:
     (is (= :malli.core/invalid ((:*parser custom-fxns) [:my/doubler-tag "G"])))
-    (is (= "<div><h1>6</h1></div>" (str (my-html [:div>h1 [:my/doubler-tag 3]]))))))
+    (is (= "<div><h1>6</h1></div>" (my-html [:div>h1 [:my/doubler-tag 3]])))))
 
 (deftest adding-both-of-them
   (let [my-schema (-> h/hiccup-schema
@@ -47,11 +47,11 @@
                        (append! (* 2 number)))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
     (is (= "<div><div><h1>I have 4 children.</h1></div><div><h1>20</h1></div><div>I have 3 children.</div></div>"
-           (str (my-html
-                  [:div
-                   [:>h1 [:my/child-counter-tag "one" "two" "three" "four"]]
-                   [:>h1 [:my/doubler-tag 10]]
-                   [(keyword "") [:my/child-counter-tag
-                                  [:my/doubler-tag 3]
-                                  [:my/doubler-tag 3]
-                                  [:my/doubler-tag 3]]]]))))))
+           (my-html
+             [:div
+              [:>h1 [:my/child-counter-tag "one" "two" "three" "four"]]
+              [:>h1 [:my/doubler-tag 10]]
+              [(keyword "") [:my/child-counter-tag
+                             [:my/doubler-tag 3]
+                             [:my/doubler-tag 3]
+                             [:my/doubler-tag 3]]]])))))
