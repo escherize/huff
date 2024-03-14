@@ -5,10 +5,11 @@
     [clojure.tools.build.api :as b]
     [org.corfield.build :as bb]))
 
+(defn semver-sort [semver-str] (->> (str/split semver-str #"\.") (mapv parse-long)))
 
 (defn git-tag
   []
-  (let [tag (->> (sh "git" "tag") :out str/split-lines peek)]
+  (let [tag (->> (sh "git" "tag") :out str/split-lines (sort-by semver-sort) last)]
     (if (seq tag) tag "0.1-SNAPSHOT")))
 
 
