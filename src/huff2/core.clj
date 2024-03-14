@@ -1,6 +1,6 @@
 (ns huff2.core
+  (:refer-clojure :exclude [rem])
   (:require
-   [clojure.core :exclude [rem]]
    [clojure.string :as str]
    [malli.core :as m]))
 
@@ -25,7 +25,7 @@
   (^String toString [_this] s)
   (^boolean equals [_this other]
    (and (instance? RawString other)
-        (= s (.toString other)))))
+        (= s (str other)))))
 
 (defn raw-string
   "Converts one or more strings into an object that will not be escaped when

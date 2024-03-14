@@ -4,6 +4,7 @@
             [clojure.test :refer [deftest is]]))
 
 (deftest class-list-equality-test
+  (is (= (h/html [:div]) (h/html [:div])))
   (is (= (h/html [:div.c1#id1.c2 {:class ["c3"] :style {:border "1px solid red"}} "x"])
          (h/html [:div.c1#id1.c2 {:class "c3" :style {:border "1px solid red"}} "x"])))
   (is (= (h/html [:div {:class nil}]) (h/html [:div])))
