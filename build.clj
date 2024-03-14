@@ -25,7 +25,7 @@
 
 (def pom-template
   [[:description "A library for cozy and delightful html generation."]
-   [:url "https://github.com/escherize/huff"]
+   [:url "https://github.com/escherize/huff/"]
    [:licenses
     [:license
      [:name "Eclipse Public License"]
@@ -36,6 +36,7 @@
 
 (defn jar
   [_]
+  (println "\nWriting pom.xml...")
   (b/write-pom {:basis basis
                 :class-dir class-dir
                 :target "target"
@@ -43,12 +44,15 @@
                 :version version
                 :scm {:url "https://github.com/escherize/huff"
                       :connection "scm:git:git://github.com/escherize/huff.git"
-                      :developerConnection "scm:git:ssh://git@github.com/escherize/huff.git"}
+                      :developerConnection "scm:git:ssh://git@github.com/escherize/huff.git"
+                      :tag (git-tag)}
                 :src-dirs ["src"]
                 :resource-dirs ["resources"]
                 :pom-data pom-template})
+  (println "\nCopying source...")
   (b/copy-dir {:src-dirs ["src" "resources"]
                :target-dir class-dir})
+  (printf "\nBuilding %s...\n" jar-file)
   (b/jar {:class-dir class-dir
           :jar-file jar-file}))
 
