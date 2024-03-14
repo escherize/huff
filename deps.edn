@@ -7,7 +7,7 @@
                                 criterium/criterium     {:mvn/version "0.4.6"}}}
            :build {:ns-default build
                    :deps {io.github.seancorfield/build-clj {:git/tag "v0.8.3" :git/sha "7ac1f8d"}
-                          io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}}}
+                          io.github.clojure/tools.build {:mvn/version "0.9.6"}}}
            :test {:extra-paths ["test"]
                   :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd" :git/url "https://github.com/cognitect-labs/test-runner"}}
                   :main-opts ["-m" "cognitect.test-runner"]

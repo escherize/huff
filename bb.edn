@@ -1,7 +1,12 @@
 {:deps {com.escherize/huff {:local/root "."}}
  :tasks
- {uber {:doc "Build uberjar"
+ {clean {:doc "Clean up"
+         :task (do
+                 (println "Cleaning up...")
+                 (clojure "-T:build clean"))}
+  uber {:doc "Build uberjar"
         :task (do
+                (run 'clean)
                 (println "Building uberjar...")
                 (clojure "-T:build jar"))}
 

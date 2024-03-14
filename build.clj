@@ -21,6 +21,7 @@
 
 (defn clean
   [_]
+  (b/delete {:path "pom.xml"})
   (b/delete {:path "target"}))
 
 (def pom-template
@@ -53,8 +54,7 @@
   (b/copy-dir {:src-dirs ["src" "resources"]
                :target-dir class-dir})
   (printf "\nBuilding %s...\n" jar-file)
-  (b/jar {:class-dir class-dir
-          :jar-file jar-file}))
+  (b/jar {:class-dir class-dir :jar-file jar-file}))
 
 
 (defn deploy
