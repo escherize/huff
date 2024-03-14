@@ -36,14 +36,16 @@
 
 (defn jar
   [_]
-  (b/write-pom {:class-dir class-dir
+  (b/write-pom {:basis basis
+                :class-dir class-dir
+                :target "target"
                 :lib lib
                 :version version
-                :basis basis
                 :scm {:url "https://github.com/escherize/huff"
                       :connection "scm:git:git://github.com/escherize/huff.git"
                       :developerConnection "scm:git:ssh://git@github.com/escherize/huff.git"}
                 :src-dirs ["src"]
+                :resource-dirs ["resources"]
                 :pom-data pom-template})
   (b/copy-dir {:src-dirs ["src" "resources"]
                :target-dir class-dir})
