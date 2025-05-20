@@ -26,7 +26,10 @@
      (fn [element]
        ;; We want to add a branch to the hiccup branches.
        (if (hiccup-branches? element)
-         (conj element [node-name node-schema])
+         (vec (concat
+                (take 2 element)
+                [[node-name node-schema]]
+                (drop 2 element)))
          element))
      hiccup-schema)))
 
