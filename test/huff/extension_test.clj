@@ -14,6 +14,14 @@
     (is (= "<div><h1>I have 3 children.</h1></div>"
            (str (my-html [:div>h1 [:my/child-counter-tag "one" "two" "three"]]))))))
 
+(deftest eq-extension
+  (let [my-schema (h2e/add-schema-branch h/hiccup-schema :=)
+        _add-emitter (defmethod h/emit := [append! [_ [_ values]] opts]
+                       (apply append! values))
+        my-html (partial h/html (h2e/custom-fxns! my-schema))]
+    (is (= "<div><h1><img src=\"https://example.com/image.png\" /></h1></div>"
+           (str (my-html [:div>h1 [:= "<img src=\"https://example.com/image.png\" />"]]))))))
+
 (deftest catn-named-values-in-schema
   (let [my-schema (h2e/add-schema-branch
                     h/hiccup-schema
