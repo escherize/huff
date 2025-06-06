@@ -98,7 +98,7 @@
     :else (str text)))
 
 (def ^:dynamic *escape?* true)
-(def ^:dynamic  *parser* (m/parser hiccup-schema))
+(def ^:dynamic  *parser* parser)
 
 (defn parse [hiccup]
   (*parser* hiccup))
