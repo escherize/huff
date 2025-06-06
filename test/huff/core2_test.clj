@@ -180,3 +180,18 @@
          (str (h/html [:div {:style {:width (-> 10 h/vmin)}}]))))
   (is (= "<div style=\"width:10vmax;\"></div>"
          (str (h/html [:div {:style {:width (-> 10 h/vmax)}}])))))
+
+(deftest custom-parser
+  (is (=
+       "<div><span>Hello world</span></div>"
+       (let [comp (fn []
+                    [:span "hi"])]
+         (str (h/html {:*parser (fn [node]
+                                  (if (= (first node) :span)
+                                    [:tag-node-no-attrs
+                                     {:tag :span
+                                      :children
+                                      [[:primative "Hello world"]]}]
+                                    (h/parser node)))}
+                      [:div
+                       [comp]]))))))

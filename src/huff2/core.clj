@@ -98,6 +98,10 @@
     :else (str text)))
 
 (def ^:dynamic *escape?* true)
+(def ^:dynamic  *parser* (m/parser hiccup-schema))
+
+(defn parse [hiccup]
+  (*parser* hiccup))
 
 (def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;", \\ "&#39;"})
 
@@ -258,7 +262,7 @@
     (emit append! c opts)))
 
 (defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] opts]
-  (emit append! (parser (apply view-fxn children)) opts))
+  (emit append! (parse (apply view-fxn children)) opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
 
@@ -272,14 +276,15 @@
   ([{:keys [allow-raw *explainer *parser] :or {allow-raw false
                                                *explainer explainer
                                                *parser parser} :as _opts} h]
-   (let [parsed (*parser h)]
-     (if (= parsed :malli.core/invalid)
-       (let [{:keys [value]} (*explainer h)]
-         (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
-       (let [sb (StringBuilder.)
-             append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
-         (emit append! parsed {:allow-raw allow-raw})
-         (raw-string (str sb)))))))
+   (binding [*parser* *parser]
+    (let [parsed (parse h)]
+      (if (= parsed :malli.core/invalid)
+        (let [{:keys [value]} (*explainer h)]
+          (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
+        (let [sb (StringBuilder.)
+              append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
+          (emit append! parsed {:allow-raw allow-raw})
+          (raw-string (str sb))))))))
 
 (defn page
   ([h] (page {} h))
