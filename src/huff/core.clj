@@ -73,10 +73,10 @@
             (doseq [c s] (.append sb (char->replacement c c))))
           (.append sb text-str))))))
 
-(defmulti ^:private emit (fn [_sb form opts] (first form)))
+(defmulti ^:private emit (fn [_sb form opts] (:key form)))
 
-(defmethod emit :primative [sb [_ x] _opts]
-  (maybe-escape-html sb x))
+(defmethod emit :primative [sb {:keys [value]} _opts]
+  (maybe-escape-html sb value))
 
 (defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
@@ -149,8 +149,10 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [^StringBuilder sb [_ {:keys [tag children]}] opts]
-  (let [tag-infos (tag->tag+id+classes tag)]
+(defmethod emit :tag-node-no-attrs [^StringBuilder sb node opts]
+  (let [tag (get-in node [:value :values :tag])
+        tag-infos (tag->tag+id+classes tag)
+        children (get-in node [:value :values :children])]
     ;; emit opening tags:
     (doseq [[tag tag-id tag-classes] tag-infos]
       (let [tag-classes' (remove str/blank? tag-classes)]
@@ -170,8 +172,10 @@
         (.append sb (name tag))
         (.append sb ">")))))
 
-(defmethod emit :tag-node [^StringBuilder sb [_ {:keys [tag attrs children]}] opts]
-  (let [tag-infos (tag->tag+id+classes tag)
+(defmethod emit :tag-node [^StringBuilder sb node opts]
+  (let [{:keys [tag attrs children]} (get-in node [:value :values])
+
+        tag-infos (tag->tag+id+classes tag)
         [_final-tag final-tag-id final-tag-classes] (last tag-infos)
         attrs (-> attrs
                   (update :id #(or % final-tag-id))
@@ -199,21 +203,26 @@
         (.append sb (name tag))
         (.append sb ">")))))
 
-(defmethod emit :raw-node [^StringBuilder sb [_ {:keys [content]}] {:keys [allow-raw] :as opts}]
-  (when-not allow-raw
-    (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?" {:content content :allow-raw allow-raw})))
-  (.append sb content))
+(defmethod emit :raw-node [^StringBuilder sb node {:keys [allow-raw] :as opts}]
+  (let [content (get-in node [:value :values :content])]
+   (when-not allow-raw
+     (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?" {:content content :allow-raw allow-raw})))
+   (.append sb content)))
 
-(defmethod emit :fragment-node [^StringBuilder sb [_ {:keys [children]}] opts]
-  (doseq [c children]
-    (emit sb c opts)))
+(defmethod emit :fragment-node [^StringBuilder sb node opts]
+  (let [children (get-in node [:value :values :children])]
+   (doseq [c children]
+     (emit sb c opts))))
 
-(defmethod emit :siblings-node [^StringBuilder sb [_ {:keys [children]}] opts]
-  (doseq [c children]
-    (emit sb c opts)))
+(defmethod emit :siblings-node [^StringBuilder sb node opts]
+  (let [children (get-in node [:value :values :children])]
+   (doseq [c children]
+     (emit sb c opts))))
 
-(defmethod emit :component-node [^StringBuilder sb [_ {:keys [view-fxn children]}] opts]
-  (emit sb (parser (apply view-fxn children)) opts))
+(defmethod emit :component-node [^StringBuilder sb node opts]
+  (let [view-fxn (get-in node [:value :values :view-fxn])
+        children (get-in node [:value :values :children])]
+   (emit sb (parser (apply view-fxn children)) opts)))
 
 (defn html
   ([h] (html {} h))

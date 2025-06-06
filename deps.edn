@@ -1,5 +1,5 @@
 {:paths   ["src"]
- :deps    {metosin/malli {:mvn/version "0.13.0"}}
+ :deps    {metosin/malli {:mvn/version "0.18.0"}}
  :aliases {:perf {:extra-paths ["perf" "perf_resources"]
                   :extra-deps  {hiccup/hiccup           {:mvn/version "1.0.5"}
                                 com.lambdaisland/hiccup {:mvn/version "0.0.33"}

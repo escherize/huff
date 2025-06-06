@@ -114,10 +114,10 @@
             (doseq [c s] (append! (char->replacement c c))))
           (append! text-str))))))
 
-(defmulti emit (fn [_append! form _opts] (first form)))
+(defmulti emit (fn [_append! form _opts] (:key form)))
 
-(defmethod emit :primative [append! [_ x] _opts]
-  (maybe-escape-html append! x))
+(defmethod emit :primative [append! {:keys [value]} _opts]
+  (maybe-escape-html append! value))
 
 (defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
@@ -186,8 +186,9 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [append! [_ {:keys [tag children]}] opts]
-  (let [tag-infos (tag->tag+id+classes tag)]
+(defmethod emit :tag-node-no-attrs [append! node opts]
+  (let [{:keys [tag children]} (get-in node [:value :values])
+        tag-infos (tag->tag+id+classes tag)]
     ;; emit opening tags:
     (doseq [[tag tag-id tag-classes] tag-infos]
       (let [tag-classes' (remove str/blank? tag-classes)]
@@ -207,8 +208,9 @@
         (append! (name tag))
         (append! ">")))))
 
-(defmethod emit :tag-node [append! [_ {:keys [tag attrs children]}] opts]
-  (let [tag-infos (tag->tag+id+classes tag)
+(defmethod emit :tag-node [append! node opts]
+  (let [{:keys [tag attrs children]} (get-in node [:value :values])
+        tag-infos (tag->tag+id+classes tag)
         [_final-tag final-tag-id final-tag-classes] (last tag-infos)
         attrs (-> attrs
                   (update :id #(or % final-tag-id))
@@ -236,29 +238,34 @@
         (append! ^String (name tag))
         (append! ">")))))
 
-(defmethod emit :raw-node [append! [_ {[type value] :content :as input}] {:keys [allow-raw] :as opts}]
+(defmethod emit :raw-node [append! input {:keys [allow-raw] :as opts}]
   ;; This either gets a string, in which case you need the allow-raw option set,
   ;; or a "raw-string" which is a wrapper for a string that cannot be
   ;; constructed outside of your program.
-  (case type
-    :string
-    (if allow-raw
-      (append! value)
-      (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
-                      {:content value :allow-raw allow-raw})))
-    :raw-string
-    (append! (str value))))
+  (let [value (get-in input [:value :values :content :value])
+        type (get-in input [:value :values :content :key])]
+   (case type
+     :string
+     (if allow-raw
+       (append! value)
+       (throw (ex-info ":hiccup/raw-html is not allowed. Maybe you meant to set allow-raw to true?"
+                       {:content value :allow-raw allow-raw})))
+     :raw-string
+     (append! (str value)))))
 
-(defmethod emit :fragment-node [append! [_ {:keys [children]}] opts]
-  (doseq [c children]
-    (emit append! c opts)))
+(defmethod emit :fragment-node [append! node opts]
+  (let [children (get-in node [:value :values :children])]
+    (doseq [c children]
+           (emit append! c opts))))
 
-(defmethod emit :siblings-node [append! [_ {:keys [children]}] opts]
-  (doseq [c children]
-    (emit append! c opts)))
+(defmethod emit :siblings-node [append! node opts]
+  (let [{:keys [children]} (get-in node [:value :values])]
+   (doseq [c children]
+     (emit append! c opts))))
 
-(defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] opts]
-  (emit append! (parser (apply view-fxn children)) opts))
+(defmethod emit :component-node [append! node opts]
+  (let [{:keys [view-fxn children]} (get-in node  [:value :values])]
+   (emit append! (parser (apply view-fxn children)) opts)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
 
