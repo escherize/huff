@@ -257,7 +257,7 @@
   (doseq [c children]
     (emit append! c opts)))
 
-(defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] opts]
+(defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] {:keys [parser] :as opts}]
   (emit append! (parser (apply view-fxn children)) opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
@@ -278,7 +278,7 @@
          (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
        (let [sb (StringBuilder.)
              append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
-         (emit append! parsed {:allow-raw allow-raw})
+         (emit append! parsed {:allow-raw allow-raw :parser *parser})
          (raw-string (str sb)))))))
 
 (defn page

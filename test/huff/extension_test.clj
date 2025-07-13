@@ -1,6 +1,6 @@
 (ns huff.extension-test
   (:require
-   [clojure.test :refer [deftest is]]
+   [clojure.test :refer [deftest is testing]]
    [huff2.extension :as h2e]
    [huff2.core :as h]))
 
@@ -55,3 +55,14 @@
                                   [:my/doubler-tag 3]
                                   [:my/doubler-tag 3]
                                   [:my/doubler-tag 3]]]]))))))
+
+(deftest extensions-apply-to-component-nodes
+  (let [my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag)
+        _add-emitter (defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+                       (is (= values ["one" "two" "three"]))
+                       (append! "I have " (count values) " children."))
+        my-html (partial h/html (h2e/custom-fxns! my-schema))]
+    (testing "a component node that has hiccup that is only valid with the extension"
+      (is (=
+            "<div><h1>I have 3 children.</h1></div>"
+            (str (my-html [(constantly [:div>h1 [:my/child-counter-tag "one" "two" "three"]])])))))))
