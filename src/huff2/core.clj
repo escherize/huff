@@ -115,9 +115,8 @@
             (doseq [c s] (append! (char->replacement c c))))
           (append! text-str))))))
 
-(defmulti emit (fn [_append! form _opts]
-                 (def v (:value form))
-                 (:key form)))
+(defmulti emit
+  (fn [_append! form _opts] (:key form)))
 
 (defmethod emit :primative [append! {:keys [value]} _opts]
   (maybe-escape-html append! value))
@@ -237,7 +236,7 @@
 
 (defmethod emit :raw-node [append!
                            {{{{:keys [key value]} :content } :values} :value}
-                           {:keys [allow-raw] :as opts}]
+                           {:keys [allow-raw]}]
   ;; This either gets a string, in which case you need the allow-raw option set,
   ;; or a "raw-string" which is a wrapper for a string that cannot be
   ;; constructed outside of your program.
