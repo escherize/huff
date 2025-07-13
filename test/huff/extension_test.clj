@@ -6,8 +6,10 @@
 
 (deftest simplest-extension
   (let [my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag)
-        ;; emit gets passed: [:my/doubler-tag [:my/doubler-tag ["one" "two" "three"]]]
-        _add-emitter (defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+        ;; emit gets passed: #malli.core.Tag{:key :my/child-counter-tag,
+        ;;                                   :value [:my/child-counter-tag ["one" "two" "three"]]}
+        _add-emitter (defmethod h/emit :my/child-counter-tag [append! {[_tag values] :value} opts]
+                       (def x x)
                        (is (= values ["one" "two" "three"]))
                        (append! "I have " (count values) " children."))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
@@ -16,7 +18,7 @@
 
 (deftest eq-extension
   (let [my-schema (h2e/add-schema-branch h/hiccup-schema :=)
-        _add-emitter (defmethod h/emit := [append! [_ [_ values]] opts]
+        _add-emitter (defmethod h/emit := [append! {[_ values] :value :as x} opts]
                        (apply append! values))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
     (is (= "<div><h1><img src=\"https://example.com/image.png\" /></h1></div>"
@@ -30,9 +32,11 @@
                      [:tag [:= :my/doubler-tag]]
                      [:number :int]])
         ;; emit gets passed: [:my/doubler-tag {:tag :my/doubler-tag, :number 3}]
-        _add-emitter (defmethod h/emit :my/doubler-tag [append!
-                                                        [_ {:keys [number] :as arg}]
-                                                        opts]
+        _add-emitter (defmethod h/emit
+                       :my/doubler-tag
+                       [append!
+                        {{{:keys [tag number] :as arg} :values} :value}
+                        opts]
                        (is (= {:tag :my/doubler-tag, :number 3} arg))
                        (append! (* 2 number)))
         custom-fxns (h2e/custom-fxns! my-schema)
@@ -48,10 +52,10 @@
                                                               [:tag [:= :my/doubler-tag]]
                                                               [:number :int]]))
         _add-emitter (defmethod h/emit :my/child-counter-tag
-                       [append! [_ [_ values]] opts]
+                       [append! {[_tag values] :value} opts]
                        (append! "I have " (count values) " children."))
         _add-emitter (defmethod h/emit :my/doubler-tag
-                       [append! [_ {:keys [number]}] opts]
+                       [append! {{{:keys [tag number] :as arg} :values} :value} opts]
                        (append! (* 2 number)))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
     (is (= "<div><div><h1>I have 4 children.</h1></div><div><h1>20</h1></div><div>I have 3 children.</div></div>"
@@ -66,7 +70,9 @@
 
 (deftest extensions-apply-to-component-nodes
   (let [my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag)
-        _add-emitter (defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+        _add-emitter (defmethod h/emit :my/child-counter-tag [append!
+                                                              {[_tag values] :value}
+                                                              opts]
                        (is (= values ["one" "two" "three"]))
                        (append! "I have " (count values) " children."))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
