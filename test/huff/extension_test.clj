@@ -8,7 +8,7 @@
   (let [my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag)
         ;; emit gets passed: #malli.core.Tag{:key :my/child-counter-tag,
         ;;                                   :value [:my/child-counter-tag ["one" "two" "three"]]}
-        _add-emitter (defmethod h/emit :my/child-counter-tag [append! {[_tag values] :value} opts]
+        _add-emitter (defmethod h/emit :my/child-counter-tag [append! {[_tag values] :value} _opts]
                        (is (= values ["one" "two" "three"]))
                        (append! "I have " (count values) " children."))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
@@ -35,7 +35,7 @@
                        :my/doubler-tag
                        [append!
                         {{{:keys [_ number] :as arg} :values} :value}
-                        opts]
+                        _opts]
                        (is (= {:tag :my/doubler-tag, :number 3} arg))
                        (append! (* 2 number)))
         custom-fxns (h2e/custom-fxns! my-schema)
@@ -51,7 +51,7 @@
                                                               [:tag [:= :my/doubler-tag]]
                                                               [:number :int]]))
         _add-emitter (defmethod h/emit :my/child-counter-tag
-                       [append! {[_tag values] :value} opts]
+                       [append! {[_tag values] :value} _opts]
                        (append! "I have " (count values) " children."))
         _add-emitter (defmethod h/emit :my/doubler-tag
                        [append! {{{:keys [_ number]} :values} :value} _opts]
@@ -71,7 +71,7 @@
   (let [my-schema (h2e/add-schema-branch h/hiccup-schema :my/child-counter-tag)
         _add-emitter (defmethod h/emit :my/child-counter-tag [append!
                                                               {[_tag values] :value}
-                                                              opts]
+                                                              _opts]
                        (is (= values ["one" "two" "three"]))
                        (append! "I have " (count values) " children."))
         my-html (partial h/html (h2e/custom-fxns! my-schema))]
