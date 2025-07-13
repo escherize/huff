@@ -146,19 +146,9 @@ Write a function that returns hiccup, and call it from the first position of a v
 </div>
 ```
 
-### Automatically append px for numeric style values:
+## Extensible Grammar
 
-``` clojure
-(h/html [:div {:style {:width (* 5 2)}}])
-
-;;=> <div style="width:10px;"></div>
-```
-
-## Extendable Grammar
-
-We now offer customization of the hiccup grammar.
-
-With this power, you can write new tags that can parse (and validate) their inputs.
+Now you can handcraft your own hiccup grammar. With this power, you can write new tags that can parse (and validate) their inputs.
 
 ### Example:
 
