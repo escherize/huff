@@ -205,7 +205,7 @@
   (testing "literals"
     (is (= "&lt;&gt;"
            (str (h/html "<>"))))
-    (is (= "&lt;&gt;" (str (h/html ^String "<>"))))
+    (is (= "&lt;&gt;" (str (h/html "<>"))))
     (is (= "1"
            (str (h/html 1))))
     (is (= "2"
