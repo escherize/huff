@@ -40,7 +40,10 @@
   (def my-schema
     (add-schema-branch h/hiccup-schema :my/child-counter-tag))
 
-  (defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+  ;;-(defmethod emit :fragment-node [append! [_ {:keys [children]}] opts]
+;;+(defmethod emit :fragment-node [append! {{{:keys [children]} :values} :value} opts]
+
+  (defmethod h/emit :my/child-counter-tag [append! {{:keys [values]} :value} _opts]
     (append! "I have " (count values) " children."))
 
   ;; Call your function, integrated with hiccup:

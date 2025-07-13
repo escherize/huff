@@ -31,8 +31,8 @@ When it comes to hiccup libraries, there's a venn-diagram "has ergonomic and mod
 - 🙃 Reagent-style fragments to return multiple forms `[:<> [:li.a] [:li.b]]` 
 - 🤐 Extreme shorthand syntax `[:. {:color :red}]` `<div color=red></div>` 
 - 🦺 Tested against slightly modified hiccup 2 tests 
-- *NEW*: 🪗 [Extendable grammar](#extendable-grammar) + custom emitter functions!
-- *NEW*: 📦 [raw-string](https://github.com/escherize/huff/issues/5) support
+- 🪗 [Extensible grammar](#extendable-grammar)
+- 📦 [raw-strings](https://github.com/escherize/huff/issues/5)
 
 ### Tag Parsing
 
@@ -102,7 +102,7 @@ Nest and combine them with lists to better convey intent to expand:
                        :background-color "#ff00ff"}}])
 ;; => <div style="background-color:#ff00ff;border:1px red solid;"></div>
 
-(h/html [:. {:style {:width 3}}])
+(h/html [:. {:style {:width (h/px 3)}}])
 ;;=> <div style=\"width:3px;\"></div>
 ```
 
@@ -146,19 +146,9 @@ Write a function that returns hiccup, and call it from the first position of a v
 </div>
 ```
 
-### Automatically append px for numeric style values:
+## Extensible Grammar
 
-``` clojure
-(h/html [:div {:style {:width (* 5 2)}}])
-
-;;=> <div style="width:10px;"></div>
-```
-
-## Extendable Grammar
-
-We now offer customization of the hiccup grammar.
-
-With this power, you can write new tags that can parse (and validate) their inputs.
+Now you can handcraft your own hiccup grammar. With this power, you can write new tags that can parse (and validate) their inputs.
 
 ### Example:
 
@@ -171,11 +161,11 @@ Let's say you _really_ need a tag to count its children, and put that into the f
 
 2. Write the emitter function for your tag:
 ``` clojure
-(defmethod h/emit :my/child-counter-tag [append! [_ [_ values]] opts]
+(defmethod h/emit :my/child-counter-tag [append! {[_ values] :value} opts]
   (append! "I have " (count values) " children."))
 ```
 
-`append!` takes strings and will append them internally during html generation.
+`append!` takes strings and will append them internally to a StringBuilder during html generation.
 
 3. Call huff2.core/html with your new schema:
 

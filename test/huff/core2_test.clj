@@ -31,8 +31,8 @@
   (is (= "<div>x</div>"
          (str (h/html [:div "x"]))))
 
-  (is (str (h/html [:div {:style {:color "red" :background "black"}} "x" [:div {:style {:padding "10px"}} "z"] "y"])
-         (= "<div style=\"background:black;color:red;\">x<div style=\"padding:10px;\">z</div>y</div>")))
+  (is (= "<div style=\"background:black;color:red;\">x<div style=\"padding:10px;\">z</div>y</div>"
+         (str (h/html [:div {:style {:color "red" :background "black"}} "x" [:div {:style {:padding "10px"}} "z"] "y"]))))
 
   (is (= "<div id=\"id\" class=\"class\"></div>"
          (str (h/html [:div.class#id]))))

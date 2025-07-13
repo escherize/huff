@@ -171,8 +171,8 @@
   (testing "attributes are evaluated"
     (is (= (str (h/html [:img {:src (str "/foo" "/bar")}]))
            "<img src=\"/foo/bar\" />"))
-    (is (= (str (h/html [:div {:id (str "a" "b")} (str "foo")]))
-           "<div id=\"ab\">foo</div>")))
+    (is (= "<div id=\"ab\">foo</div>"
+           (str (h/html [:div {:id (str "a" "b")} "foo"])))))
   (testing "type hints"
     (let [string "x"]
       (is (= (str (h/html [:span ^String string])) "<span>x</span>"))))
@@ -187,7 +187,7 @@
   (testing "values are evaluated only once"
     (let [times-called (atom 0)
           foo #(swap! times-called inc)]
-      (str (h/html [:div (foo)]))
+      (h/html [:div (foo)])
       (is (= @times-called 1)))))
 
 (deftest render-modes
@@ -205,7 +205,7 @@
   (testing "literals"
     (is (= "&lt;&gt;"
            (str (h/html "<>"))))
-    (is (= "&lt;&gt;" (str (h/html ^String (str "<>")))))
+    (is (= "&lt;&gt;" (str (h/html ^String "<>"))))
     (is (= "1"
            (str (h/html 1))))
     (is (= "2"

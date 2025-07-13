@@ -83,6 +83,7 @@
 
 (let [validator (m/validator hiccup-schema)]
   (defn valid? [h] (validator h)))
+
 (def explainer (m/explainer hiccup-schema))
 (def parser (m/parser hiccup-schema))
 
@@ -114,10 +115,11 @@
             (doseq [c s] (append! (char->replacement c c))))
           (append! text-str))))))
 
-(defmulti emit (fn [_append! form _opts] (first form)))
+(defmulti emit
+  (fn [_append! form _opts] (:key form)))
 
-(defmethod emit :primative [append! [_ x] _opts]
-  (maybe-escape-html append! x))
+(defmethod emit :primative [append! {:keys [value]} _opts]
+  (maybe-escape-html append! value))
 
 (defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
@@ -168,14 +170,12 @@
         (emit-style append! value)
 
         (coll? value)
-        (do (append! (stringify k))
-            (append! "=\"")
+        (do (append! (stringify k) "=\"")
             (doseq [x (interpose " " value)] (maybe-escape-html append! x))
             (append! "\""))
 
         :else
-        (do (append! (stringify k))
-            (append! "=\"")
+        (do (append! (stringify k) "=\"")
             (maybe-escape-html append! value)
             (append! "\""))))))
 
@@ -186,7 +186,7 @@
   #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
   "link" "meta" "param" "source" "track" "wbr"})
 
-(defmethod emit :tag-node-no-attrs [append! [_ {:keys [tag children]}] opts]
+(defmethod emit :tag-node-no-attrs [append! {{{:keys [tag children]} :values} :value} opts]
   (let [tag-infos (tag->tag+id+classes tag)]
     ;; emit opening tags:
     (doseq [[tag tag-id tag-classes] tag-infos]
@@ -203,11 +203,9 @@
     ;;closing tags
     (doseq [[tag] (reverse tag-infos)]
       (when-not (contains? void-tags (name tag))
-        (append! "</")
-        (append! (name tag))
-        (append! ">")))))
+        (append! "</" (name tag) ">")))))
 
-(defmethod emit :tag-node [append! [_ {:keys [tag attrs children]}] opts]
+(defmethod emit :tag-node [append! {{{:keys [tag attrs children]} :values} :value} opts]
   (let [tag-infos (tag->tag+id+classes tag)
         [_final-tag final-tag-id final-tag-classes] (last tag-infos)
         attrs (-> attrs
@@ -236,11 +234,13 @@
         (append! ^String (name tag))
         (append! ">")))))
 
-(defmethod emit :raw-node [append! [_ {[type value] :content :as input}] {:keys [allow-raw] :as opts}]
+(defmethod emit :raw-node [append!
+                           {{{{:keys [key value]} :content } :values} :value}
+                           {:keys [allow-raw]}]
   ;; This either gets a string, in which case you need the allow-raw option set,
   ;; or a "raw-string" which is a wrapper for a string that cannot be
   ;; constructed outside of your program.
-  (case type
+  (case key
     :string
     (if allow-raw
       (append! value)
@@ -249,15 +249,15 @@
     :raw-string
     (append! (str value))))
 
-(defmethod emit :fragment-node [append! [_ {:keys [children]}] opts]
+(defmethod emit :fragment-node [append! {{{:keys [children]} :values} :value} opts]
   (doseq [c children]
     (emit append! c opts)))
 
-(defmethod emit :siblings-node [append! [_ {:keys [children]}] opts]
+(defmethod emit :siblings-node [append! {{{:keys [children]} :values} :value} opts]
   (doseq [c children]
     (emit append! c opts)))
 
-(defmethod emit :component-node [append! [_ {:keys [view-fxn children]}] {:keys [parser] :as opts}]
+(defmethod emit :component-node [append! {{{:keys [view-fxn children]} :values} :value} {:keys [parser] :as opts}]
   (emit append! (parser (apply view-fxn children)) opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
