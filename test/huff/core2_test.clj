@@ -90,8 +90,8 @@
   (is (= "<div>&lt;</div>"   (str (h/html [:div "<"]))))
   (is (= "<div>&gt;</div>"   (str (h/html [:div ">"]))))
   (is (= "<div>&quot;</div>" (str (h/html [:div "\""]))))
-  (is (= "<div>&#39;</div>"  (str (h/html [:div "\\"]))))
-  (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>&#39;</div>"
+  (is (= "<div>\\</div>"    (str (h/html [:div "\\"]))))
+  (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>\\</div>"
          (str (h/html [:<>
                        [:div "&"]
                        [:div "<"]

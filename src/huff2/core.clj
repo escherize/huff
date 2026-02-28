@@ -100,7 +100,7 @@
 
 (def ^:dynamic *escape?* true)
 
-(def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;", \\ "&#39;"})
+(def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;"})
 
 (defn maybe-escape-html
   "1. Change special characters into HTML character entities when *escape?*
