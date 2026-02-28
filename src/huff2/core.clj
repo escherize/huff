@@ -118,6 +118,16 @@
 (defmulti emit
   (fn [_append! form _opts] (:key form)))
 
+(defmethod emit :default [_append! form _opts]
+  (throw (ex-info (cond
+                    (keyword? (:value form))
+                    (str "Got a bare keyword " (:value form)
+                         " — wrap it in a vector to make an HTML element, e.g. ["
+                         (:value form) "]")
+                    :else
+                    (str "Unexpected hiccup form: " (pr-str form)))
+                  {:form form})))
+
 (defmethod emit :primative [append! {:keys [value]} _opts]
   (maybe-escape-html append! value))
 
@@ -258,7 +268,14 @@
     (emit append! c opts)))
 
 (defmethod emit :component-node [append! {{{:keys [view-fxn children]} :values} :value} {:keys [parser] :as opts}]
-  (emit append! (parser (apply view-fxn children)) opts))
+  (let [result (apply view-fxn children)
+        parsed (parser result)]
+    (if (= parsed :malli.core/invalid)
+      (throw (ex-info (str "Component " view-fxn " returned invalid hiccup")
+                      {:component view-fxn
+                       :args children
+                       :returned result}))
+      (emit append! parsed opts))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
 
