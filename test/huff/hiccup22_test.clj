@@ -7,7 +7,7 @@
             ))
 
 (deftest kw-tag-parsing
-  (are [x y] (= (#'h/tag->tag+id+classes x) y)
+  (are [x y] (= (h/tag->tag+id+classes x) y)
     :div       [["div" nil []]]
     :div.a     [["div" nil ["a"]]]
     :div.a#d   [["div" "d" ["a"]]]
@@ -64,7 +64,7 @@
 
 (deftest kw-tag-validity
   (is (= "can't have 2 #'s in a tag."
-         (try (#'h/tag->tag+id+classes :div#id1#id2)
+         (try (h/tag->tag+id+classes :div#id1#id2)
               (catch Exception e (ex-message e))))))
 
 (deftest tag-names

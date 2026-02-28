@@ -100,7 +100,7 @@
 
 (def ^:dynamic *escape?* true)
 
-(def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;", \\ "&#39;"})
+(def ^:private char->replacement {\& "&amp;", \< "&lt;", \> "&gt;", \" "&quot;"})
 
 (defn maybe-escape-html
   "1. Change special characters into HTML character entities when *escape?*
@@ -121,9 +121,9 @@
 (defmethod emit :primative [append! {:keys [value]} _opts]
   (maybe-escape-html append! value))
 
-(defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
+(defn empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
-(defn- emit-style [append! s]
+(defn emit-style [append! s]
   (append! "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
@@ -156,11 +156,13 @@
       (step \.) ;; move "seen " into the right place
       (map [:tag :id :class])))
 
-(defn- tag->tag+id+classes [tag]
+(defn tag->tag+id+classes [tag]
   (mapv (comp tag->tag+id+classes* keyword) (str/split (name tag) #">")))
 
-(defn- emit-attrs [append! attrs]
-  (doseq [[k value] attrs]
+(defn emit-attrs [append! attrs {:keys [attr-mapper]}]
+  (doseq [[k value] (if attr-mapper
+                      (map attr-mapper attrs)
+                      attrs)]
     (when-not
         (or (contains? #{"" nil false} value)
             (and (coll? value) (empty? value)))
@@ -194,7 +196,7 @@
         (append! "<")
         (append! ^String (name tag))
         (when (or tag-id (not-empty tag-classes'))
-          (emit-attrs append! {:id tag-id :class tag-classes'}))
+          (emit-attrs append! {:id tag-id :class tag-classes'} opts))
         (if (contains? void-tags (name tag))
           (append! " />")
           (append! ">"))))
@@ -215,6 +217,7 @@
                                       (string? %) (concat [%] final-tag-classes)
                                       (coll? %) (concat % final-tag-classes)
                                       (nil? %) final-tag-classes)
+                                    (map stringify)
                                     (remove str/blank?))))
         ;; attrs go on the last tag-info:
         tag-infos' (update tag-infos (dec (count tag-infos)) (fn [l] (conj (vec l) attrs)))]
@@ -222,8 +225,8 @@
       (append! "<")
       (append! ^String (name tag))
       (if attrs
-        (emit-attrs append! attrs)
-        (emit-attrs append! {:id tag-id :class (remove str/blank? tag-classes)}))
+        (emit-attrs append! attrs opts)
+        (emit-attrs append! {:id tag-id :class (remove str/blank? tag-classes)} opts))
       (if (contains? void-tags (name tag))
         (append! " />")
         (append! ">")))
@@ -269,16 +272,16 @@
 
   Can I extend this by adding new types of nodes? Yes: see: [[huff2.extension]]!"
   ([h] (html {} h))
-  ([{:keys [allow-raw *explainer *parser] :or {allow-raw false
-                                               *explainer explainer
-                                               *parser parser} :as _opts} h]
+  ([{:keys [allow-raw *explainer *parser attr-mapper]
+     :or {allow-raw false, *explainer explainer, *parser parser}
+     :as _opts} h]
    (let [parsed (*parser h)]
      (if (= parsed :malli.core/invalid)
        (let [{:keys [value]} (*explainer h)]
          (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
        (let [sb (StringBuilder.)
              append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
-         (emit append! parsed {:allow-raw allow-raw :parser *parser})
+         (emit append! parsed {:allow-raw allow-raw :parser *parser :attr-mapper attr-mapper})
          (raw-string (str sb)))))))
 
 (defn page

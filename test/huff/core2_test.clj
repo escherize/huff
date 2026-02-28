@@ -8,7 +8,11 @@
   (is (= (h/html [:div.c1#id1.c2 {:class ["c3"] :style {:border "1px solid red"}} "x"])
          (h/html [:div.c1#id1.c2 {:class "c3" :style {:border "1px solid red"}} "x"])))
   (is (= (h/html [:div {:class nil}]) (h/html [:div])))
-  (is (= (h/html [:div.a]) (h/html [:div {:class ["a" nil "" ""]}]))))
+  (is (= (h/html [:div.a]) (h/html [:div {:class ["a" nil "" ""]}])))
+  (is (= "<div class=\"flex flex-auto\"></div>"
+         (str (h/html [:div {:class [:flex :flex-auto]}]))))
+  (is (= (h/html [:div {:class ["flex" "flex-auto"]}])
+         (h/html [:div {:class [:flex :flex-auto]}]))))
 
 (defn as-string [f]
   (let [sb (StringBuilder.)
@@ -73,10 +77,10 @@
 
 
 (deftest attr-emission-test
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]}))))
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"}))))
-  (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []}))))
-  (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"})))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(h/emit-attrs % {:id "x" :class ["x" "y"]} {}))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(h/emit-attrs % {:id "x" :class "x y"} {}))))
+  (is (= " id=\"x\"" (as-string #(h/emit-attrs % {:id "x" :class []} {}))))
+  (is (= " x-data=\"{open: false}\"" (as-string #(h/emit-attrs % {:x-data "{open: false}"} {})))))
 
 (deftest page-test
   (is (= (h/page {:allow-raw true} [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
@@ -86,8 +90,8 @@
   (is (= "<div>&lt;</div>"   (str (h/html [:div "<"]))))
   (is (= "<div>&gt;</div>"   (str (h/html [:div ">"]))))
   (is (= "<div>&quot;</div>" (str (h/html [:div "\""]))))
-  (is (= "<div>&#39;</div>"  (str (h/html [:div "\\"]))))
-  (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>&#39;</div>"
+  (is (= "<div>\\</div>"    (str (h/html [:div "\\"]))))
+  (is (= "<div>&amp;</div><div>&lt;</div><div>&gt;</div><div>&quot;</div><div>\\</div>"
          (str (h/html [:<>
                        [:div "&"]
                        [:div "<"]
@@ -114,8 +118,8 @@
          (str (h/html [:h1 {:style {:width (-> 20 h/px) :opacity 1}}])))))
 
 (deftest dot-shortcut-for-div-test
-  (is (= (#'h/tag->tag+id+classes :.)
-         (#'h/tag->tag+id+classes :div))))
+  (is (= (h/tag->tag+id+classes :.)
+         (h/tag->tag+id+classes :div))))
 
 (deftest lists-work-for-spreading
   (is (= "<div><span>ok</span></div>" (str (h/html [:div '([:span "ok"])]))))
@@ -180,3 +184,12 @@
          (str (h/html [:div {:style {:width (-> 10 h/vmin)}}]))))
   (is (= "<div style=\"width:10vmax;\"></div>"
          (str (h/html [:div {:style {:width (-> 10 h/vmax)}}])))))
+
+(deftest attr-mapper-test
+  (is (= "<div id=\"Capitalized\"><span id=\"lowercased\">text</span></div>"
+         (str (h/html
+               {:attr-mapper (fn [[k v]]
+                               [k (if (keyword? v)
+                                    (str/lower-case (name v))
+                                    v)])}
+               [:div {:id "Capitalized"} [:span {:id :LoWerCaSEd} "text"]])))))
