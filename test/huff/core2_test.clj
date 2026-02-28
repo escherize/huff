@@ -1,7 +1,7 @@
 (ns huff.core2-test
   (:require [huff2.core :as h]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is]]))
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest class-list-equality-test
   (is (= (h/html [:div]) (h/html [:div])))
@@ -180,3 +180,14 @@
          (str (h/html [:div {:style {:width (-> 10 h/vmin)}}]))))
   (is (= "<div style=\"width:10vmax;\"></div>"
          (str (h/html [:div {:style {:width (-> 10 h/vmax)}}])))))
+
+(deftest component-invalid-hiccup-error-test
+  (testing "component returning invalid hiccup gives clear error"
+    (let [bad-component (fn [] :div)]
+      (is (thrown-with-msg? Exception #"returned invalid hiccup"
+            (h/html [:div [bad-component]])))))
+  (testing "component returning bare keyword mentions the component"
+    (let [bad-component (fn [] :div)
+          ex-data' (try (h/html [:div [bad-component]])
+                        (catch Exception e (ex-data e)))]
+      (is (= :div (:returned ex-data'))))))
