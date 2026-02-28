@@ -8,7 +8,11 @@
   (is (= (h/html [:div.c1#id1.c2 {:class ["c3"] :style {:border "1px solid red"}} "x"])
          (h/html [:div.c1#id1.c2 {:class "c3" :style {:border "1px solid red"}} "x"])))
   (is (= (h/html [:div {:class nil}]) (h/html [:div])))
-  (is (= (h/html [:div.a]) (h/html [:div {:class ["a" nil "" ""]}]))))
+  (is (= (h/html [:div.a]) (h/html [:div {:class ["a" nil "" ""]}])))
+  (is (= "<div class=\"flex flex-auto\"></div>"
+         (str (h/html [:div {:class [:flex :flex-auto]}]))))
+  (is (= (h/html [:div {:class ["flex" "flex-auto"]}])
+         (h/html [:div {:class [:flex :flex-auto]}]))))
 
 (defn as-string [f]
   (let [sb (StringBuilder.)

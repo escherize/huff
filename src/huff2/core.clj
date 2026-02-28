@@ -215,6 +215,7 @@
                                       (string? %) (concat [%] final-tag-classes)
                                       (coll? %) (concat % final-tag-classes)
                                       (nil? %) final-tag-classes)
+                                    (map stringify)
                                     (remove str/blank?))))
         ;; attrs go on the last tag-info:
         tag-infos' (update tag-infos (dec (count tag-infos)) (fn [l] (conj (vec l) attrs)))]
