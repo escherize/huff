@@ -159,8 +159,10 @@
 (defn- tag->tag+id+classes [tag]
   (mapv (comp tag->tag+id+classes* keyword) (str/split (name tag) #">")))
 
-(defn- emit-attrs [append! attrs]
-  (doseq [[k value] attrs]
+(defn- emit-attrs [append! attrs {:keys [attr-mapper]}]
+  (doseq [[k value] (if attr-mapper
+                      (map attr-mapper attrs)
+                      attrs)]
     (when-not
         (or (contains? #{"" nil false} value)
             (and (coll? value) (empty? value)))
@@ -194,7 +196,7 @@
         (append! "<")
         (append! ^String (name tag))
         (when (or tag-id (not-empty tag-classes'))
-          (emit-attrs append! {:id tag-id :class tag-classes'}))
+          (emit-attrs append! {:id tag-id :class tag-classes'} opts))
         (if (contains? void-tags (name tag))
           (append! " />")
           (append! ">"))))
@@ -223,8 +225,8 @@
       (append! "<")
       (append! ^String (name tag))
       (if attrs
-        (emit-attrs append! attrs)
-        (emit-attrs append! {:id tag-id :class (remove str/blank? tag-classes)}))
+        (emit-attrs append! attrs opts)
+        (emit-attrs append! {:id tag-id :class (remove str/blank? tag-classes)} opts))
       (if (contains? void-tags (name tag))
         (append! " />")
         (append! ">")))
@@ -270,16 +272,16 @@
 
   Can I extend this by adding new types of nodes? Yes: see: [[huff2.extension]]!"
   ([h] (html {} h))
-  ([{:keys [allow-raw *explainer *parser] :or {allow-raw false
-                                               *explainer explainer
-                                               *parser parser} :as _opts} h]
+  ([{:keys [allow-raw *explainer *parser attr-mapper]
+     :or {allow-raw false, *explainer explainer, *parser parser}
+     :as _opts} h]
    (let [parsed (*parser h)]
      (if (= parsed :malli.core/invalid)
        (let [{:keys [value]} (*explainer h)]
          (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
        (let [sb (StringBuilder.)
              append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
-         (emit append! parsed {:allow-raw allow-raw :parser *parser})
+         (emit append! parsed {:allow-raw allow-raw :parser *parser :attr-mapper attr-mapper})
          (raw-string (str sb)))))))
 
 (defn page

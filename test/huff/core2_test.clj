@@ -77,10 +77,10 @@
 
 
 (deftest attr-emission-test
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]}))))
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"}))))
-  (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []}))))
-  (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"})))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]} {}))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"} {}))))
+  (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []} {}))))
+  (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"} {})))))
 
 (deftest page-test
   (is (= (h/page {:allow-raw true} [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
@@ -184,3 +184,12 @@
          (str (h/html [:div {:style {:width (-> 10 h/vmin)}}]))))
   (is (= "<div style=\"width:10vmax;\"></div>"
          (str (h/html [:div {:style {:width (-> 10 h/vmax)}}])))))
+
+(deftest attr-mapper-test
+  (is (= "<div id=\"Capitalized\"><span id=\"lowercased\">text</span></div>"
+         (str (h/html
+               {:attr-mapper (fn [[k v]]
+                               [k (if (keyword? v)
+                                    (str/lower-case (name v))
+                                    v)])}
+               [:div {:id "Capitalized"} [:span {:id :LoWerCaSEd} "text"]])))))
