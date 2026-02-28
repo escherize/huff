@@ -1,7 +1,7 @@
 (ns huff.core2-test
   (:require [huff2.core :as h]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is]]))
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest class-list-equality-test
   (is (= (h/html [:div]) (h/html [:div])))
@@ -180,3 +180,27 @@
          (str (h/html [:div {:style {:width (-> 10 h/vmin)}}]))))
   (is (= "<div style=\"width:10vmax;\"></div>"
          (str (h/html [:div {:style {:width (-> 10 h/vmax)}}])))))
+
+(deftest html-write-test
+  (let [sw (java.io.StringWriter.)]
+    (h/html-write sw [:div.hello#world "!"])
+    (is (= "<div id=\"world\" class=\"hello\">!</div>" (str sw))))
+  (testing "matches html output"
+    (let [sw (java.io.StringWriter.)
+          hiccup [:ul (for [n (range 3)] [:li n])]]
+      (h/html-write sw hiccup)
+      (is (= (str (h/html hiccup)) (str sw)))))
+  (testing "with opts"
+    (let [sw (java.io.StringWriter.)]
+      (h/html-write sw {:allow-raw true} [:hiccup/raw-html "<b>bold</b>"])
+      (is (= "<b>bold</b>" (str sw)))))
+  (testing "components"
+    (let [sw (java.io.StringWriter.)
+          greet (fn [name] [:span "Hello, " name])]
+      (h/html-write sw [:div [greet "World"]])
+      (is (= "<div><span>Hello, World</span></div>" (str sw))))))
+
+(deftest page-write-test
+  (let [sw (java.io.StringWriter.)]
+    (h/page-write sw {:allow-raw true} [:h1 "hi"])
+    (is (= "<!doctype html><h1>hi</h1>" (str sw)))))

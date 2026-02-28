@@ -262,6 +262,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Public api
 
+(defn- emit-parsed!
+  [append! {:keys [allow-raw *explainer *parser]
+            :or {allow-raw false, *explainer explainer, *parser parser}} h]
+  (let [parsed (*parser h)]
+    (if (= parsed :malli.core/invalid)
+      (let [{:keys [value]} (*explainer h)]
+        (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info"
+                        {:value value})))
+      (emit append! parsed {:allow-raw allow-raw :parser *parser}))))
+
 (defn html
   "Generates html from hiccupy data-structures.
 
@@ -269,18 +279,32 @@
 
   Can I extend this by adding new types of nodes? Yes: see: [[huff2.extension]]!"
   ([h] (html {} h))
-  ([{:keys [allow-raw *explainer *parser] :or {allow-raw false
-                                               *explainer explainer
-                                               *parser parser} :as _opts} h]
-   (let [parsed (*parser h)]
-     (if (= parsed :malli.core/invalid)
-       (let [{:keys [value]} (*explainer h)]
-         (throw (ex-info "Invalid huff form passed to html. See [[hiccup-schema]] for more info" {:value value})))
-       (let [sb (StringBuilder.)
-             append! (fn append! [& strings] (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
-         (emit append! parsed {:allow-raw allow-raw :parser *parser})
-         (raw-string (str sb)))))))
+  ([opts h]
+   (let [sb (StringBuilder.)
+         append! (fn append! [& strings]
+                   (doseq [s strings :when s] (.append ^StringBuilder sb s)))]
+     (emit-parsed! append! opts h)
+     (raw-string (str sb)))))
 
 (defn page
   ([h] (page {} h))
   ([opts h] (str "<!doctype html>" (html opts h))))
+
+(defn html-write
+  "Writes html from hiccup data to a java.io.Writer. Returns nil.
+   Does not flush the writer."
+  ([^java.io.Writer writer h] (html-write writer {} h))
+  ([^java.io.Writer writer opts h]
+   (let [append! (fn append! [& strings]
+                   (doseq [s strings :when s]
+                     (.write ^java.io.Writer writer (str s))))]
+     (emit-parsed! append! opts h)
+     nil)))
+
+(defn page-write
+  "Writes a full HTML page (with doctype) to a java.io.Writer. Returns nil.
+   Does not flush the writer."
+  ([^java.io.Writer writer h] (page-write writer {} h))
+  ([^java.io.Writer writer opts h]
+   (.write ^java.io.Writer writer "<!doctype html>")
+   (html-write writer opts h)))
