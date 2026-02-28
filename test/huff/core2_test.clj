@@ -77,10 +77,10 @@
 
 
 (deftest attr-emission-test
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class ["x" "y"]} {}))))
-  (is (= " id=\"x\" class=\"x y\"" (as-string #(#'h/emit-attrs % {:id "x" :class "x y"} {}))))
-  (is (= " id=\"x\"" (as-string #(#'h/emit-attrs % {:id "x" :class []} {}))))
-  (is (= " x-data=\"{open: false}\"" (as-string #(#'h/emit-attrs % {:x-data "{open: false}"} {})))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(h/emit-attrs % {:id "x" :class ["x" "y"]} {}))))
+  (is (= " id=\"x\" class=\"x y\"" (as-string #(h/emit-attrs % {:id "x" :class "x y"} {}))))
+  (is (= " id=\"x\"" (as-string #(h/emit-attrs % {:id "x" :class []} {}))))
+  (is (= " x-data=\"{open: false}\"" (as-string #(h/emit-attrs % {:x-data "{open: false}"} {})))))
 
 (deftest page-test
   (is (= (h/page {:allow-raw true} [:h1 "hi"]) "<!doctype html><h1>hi</h1>")))
@@ -118,8 +118,8 @@
          (str (h/html [:h1 {:style {:width (-> 20 h/px) :opacity 1}}])))))
 
 (deftest dot-shortcut-for-div-test
-  (is (= (#'h/tag->tag+id+classes :.)
-         (#'h/tag->tag+id+classes :div))))
+  (is (= (h/tag->tag+id+classes :.)
+         (h/tag->tag+id+classes :div))))
 
 (deftest lists-work-for-spreading
   (is (= "<div><span>ok</span></div>" (str (h/html [:div '([:span "ok"])]))))

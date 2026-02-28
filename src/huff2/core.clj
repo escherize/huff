@@ -121,9 +121,9 @@
 (defmethod emit :primative [append! {:keys [value]} _opts]
   (maybe-escape-html append! value))
 
-(defn- empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
+(defn empty-or-div [seen] (if (empty? seen) "div" (str/join seen)))
 
-(defn- emit-style [append! s]
+(defn emit-style [append! s]
   (append! "style=\"")
   (cond
     (map? s) (doseq [[k v] (sort-by first s)]
@@ -156,10 +156,10 @@
       (step \.) ;; move "seen " into the right place
       (map [:tag :id :class])))
 
-(defn- tag->tag+id+classes [tag]
+(defn tag->tag+id+classes [tag]
   (mapv (comp tag->tag+id+classes* keyword) (str/split (name tag) #">")))
 
-(defn- emit-attrs [append! attrs {:keys [attr-mapper]}]
+(defn emit-attrs [append! attrs {:keys [attr-mapper]}]
   (doseq [[k value] (if attr-mapper
                       (map attr-mapper attrs)
                       attrs)]
